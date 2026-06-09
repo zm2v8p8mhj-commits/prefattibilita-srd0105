@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prefattibilità SRD01.05 — Investimenti produttivi agricoli</title>
+<style>
+  :root{
+    --green:#1b5e20; --green-light:#2e7d32; --green-pale:#e8f5e9;
+    --ink:#1a1a1a; --grey:#666; --line:#d5d5d5; --bg:#f4f6f4;
+    --red:#b71c1c; --amber:#e65100; --blue:#0d47a1;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+  header.appbar{background:var(--green);color:#fff;padding:18px 28px}
+  header.appbar h1{margin:0;font-size:21px;font-weight:700}
+  header.appbar p{margin:4px 0 0;font-size:13px;opacity:.9}
+  main{max-width:1080px;margin:0 auto;padding:24px 20px 80px}
+  fieldset{border:1px solid var(--line);border-radius:10px;background:#fff;margin:0 0 18px;padding:16px 18px 18px}
+  legend{font-weight:700;color:var(--green);padding:0 8px;font-size:15px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 18px}
+  label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:#333}
+  label.f small{font-weight:400;color:var(--grey)}
+  input[type=text],input[type=number],input[type=date],select{
+    padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;width:100%;background:#fff}
+  input:focus,select:focus{outline:2px solid var(--green-light);border-color:var(--green-light)}
+  .chk{display:flex;align-items:flex-start;gap:8px;font-size:14px;padding:6px 4px}
+  .chk input{margin-top:3px;width:16px;height:16px;accent-color:var(--green)}
+  .hint{font-size:12px;color:var(--grey);margin:2px 0 0}
+  .subhead{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--green-light);margin:14px 0 8px;border-bottom:1px solid var(--green-pale);padding-bottom:4px}
+  table.inp{width:100%;border-collapse:collapse;font-size:14px}
+  table.inp th,table.inp td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+  table.inp th{background:var(--green-pale);font-size:12.5px}
+  table.inp td input{border:1px solid var(--line);border-radius:4px;padding:5px 8px;width:140px}
+  table.inp td input[type=checkbox]{width:16px;height:16px;accent-color:var(--green)}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0}
+  button{font-size:15px;font-weight:700;padding:12px 22px;border-radius:8px;border:none;cursor:pointer}
+  button.primary{background:var(--green);color:#fff}
+  button.primary:hover{background:var(--green-light)}
+  button.ghost{background:#fff;color:var(--green);border:2px solid var(--green)}
+  button.ghost:hover{background:var(--green-pale)}
+
+  /* ============ REPORT ============ */
+  #report{display:none;background:#fff;border:1px solid var(--line);border-radius:10px;padding:34px 40px;margin-top:10px}
+  #report.visible{display:block}
+  .r-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--green);padding-bottom:14px;margin-bottom:20px}
+  .r-head h2{margin:0;font-size:20px;color:var(--green)}
+  .r-head .sub{font-size:13px;color:var(--grey);margin-top:3px}
+  .r-head .meta{text-align:right;font-size:12.5px;color:var(--grey)}
+  .esito{border-radius:10px;padding:16px 20px;font-size:17px;font-weight:800;margin:16px 0;display:flex;align-items:center;gap:12px}
+  .esito.ok{background:var(--green-pale);color:var(--green);border:2px solid var(--green)}
+  .esito.ko{background:#fdecea;color:var(--red);border:2px solid var(--red)}
+  .esito.warn{background:#fff3e0;color:var(--amber);border:2px solid var(--amber)}
+  .esito .badge{font-size:26px}
+  h3.r{font-size:15px;color:var(--green);border-bottom:1.5px solid var(--green-pale);padding-bottom:5px;margin:26px 0 10px;text-transform:uppercase;letter-spacing:.03em}
+  table.r{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:6px}
+  table.r th,table.r td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  table.r th{background:var(--green-pale);color:var(--green);font-size:12.5px}
+  table.r td.num,table.r th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.tot td{font-weight:800;background:#f1f8f1}
+  .fail-row{color:var(--red);font-weight:700}
+  .pass-row{color:var(--green)}
+  .miss{color:var(--amber);font-weight:700}
+  .note{font-size:12px;color:var(--grey);margin:4px 0 0}
+  ul.docs{margin:6px 0 0;padding-left:0;list-style:none}
+  ul.docs li{padding:5px 0 5px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+  ul.docs li b{color:var(--green);display:inline-block;min-width:62px}
+  .disclaimer{margin-top:30px;font-size:11.5px;color:var(--grey);border-top:1px solid var(--line);padding-top:12px}
+  .firma{margin-top:34px;display:flex;justify-content:flex-end}
+  .firma .box{text-align:center;font-size:13px}
+  .firma .box .nome{font-weight:700;margin-top:34px;border-top:1px solid var(--ink);padding-top:6px}
+
+  @media print{
+    body{background:#fff;font-size:12px}
+    header.appbar, #formArea, .actions, .no-print{display:none !important}
+    main{max-width:none;padding:0}
+    #report{display:block !important;border:none;padding:0;margin:0}
+    h3.r{page-break-after:avoid}
+    table.r{page-break-inside:auto}
+    tr{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <h1>Studio di Prefattibilità — SRD01.05</h1>
+  <p>Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027 · Motore di verifica ammissibilità e punteggio</p>
+</header>
+
+<main>
+<div id="formArea">
+
+<!-- ====== ANAGRAFICA ====== -->
+<fieldset>
+  <legend>1 · Dati azienda e soggettività</legend>
+  <div class="grid">
+    <label class="f">Ragione sociale / Ditta
+      <input type="text" id="ditta" placeholder="Es. Az. Agr. Rossi Mario">
+    </label>
+    <label class="f">CUAA (CF/P.IVA)
+      <input type="text" id="cuaa" placeholder="16 caratteri" maxlength="16">
+    </label>
+    <label class="f">Soggettività giuridica
+      <select id="soggettivita">
+        <option value="IA">Imprenditore Agricolo (art. 2135 c.c.)</option>
+        <option value="OP">Organizzazione di Produttori (OP)</option>
+        <option value="COOP">Cooperativa agricola</option>
+        <option value="RETE">Rete di Imprese</option>
+        <option value="ALTRO">Altro soggetto (non ammissibile)</option>
+      </select>
+    </label>
+    <label class="f">Comune / Provincia sede aziendale
+      <input type="text" id="comune" placeholder="Es. Nardò (LE)">
+    </label>
+  </div>
+  <div class="chk"><input type="checkbox" id="soloSilvAcqua"><span>L'azienda pratica <b>esclusivamente</b> silvicoltura e/o acquacoltura</span></div>
+  <div class="grid" style="margin-top:8px">
+    <label class="f">Data di nascita titolare
+      <input type="date" id="nascita">
+    </label>
+    <label class="f">Data primo insediamento
+      <input type="date" id="insediamento">
+      <small>Per qualifica Giovane Agricoltore</small>
+    </label>
+    <label class="f">Genere titolare
+      <select id="genere">
+        <option value="M">Uomo</option>
+        <option value="F">Donna</option>
+        <option value="NA">Società / non applicabile</option>
+      </select>
+    </label>
+    <label class="f">Data presentazione DdS (riferimento)
+      <input type="date" id="dds">
+    </label>
+  </div>
+</fieldset>
+
+<!-- ====== DIMENSIONE ECONOMICA ====== -->
+<fieldset>
+  <legend>2 · Dimensione economica e progetto</legend>
+  <div class="grid">
+    <label class="f">Produzione Standard (PS) totale €
+      <input type="number" id="psTotale" min="0" step="0.01" placeholder="es. 45000">
+    </label>
+    <label class="f">PS comparto olivicolo €
+      <input type="number" id="psOlio" min="0" step="0.01" placeholder="se applicabile">
+    </label>
+    <label class="f">Valore OTE (da fascicolo) €
+      <input type="number" id="ote" min="0" step="0.01" placeholder="per principio P5">
+    </label>
+    <label class="f">Costo totale investimento ammissibile €
+      <input type="number" id="costoTot" min="0" step="0.01" placeholder="escluse spese generali">
+    </label>
+    <label class="f">Investimenti SRD01 già ammessi 2023–2027 €
+      <input type="number" id="giaAmmesso" min="0" step="0.01" value="0">
+      <small>Per verifica massimale cumulativo € 3.000.000</small>
+    </label>
+  </div>
+  <div class="chk"><input type="checkbox" id="soloOlivicolo"><span>L'investimento riguarda <b>unicamente</b> il comparto olivicolo (attiva deroga PS ≥ € 5.000)</span></div>
+</fieldset>
+
+<!-- ====== P1 PRIORITARI ====== -->
+<fieldset>
+  <legend>3 · Investimenti prioritari (P1 — max 17 pt)</legend>
+  <p class="hint">Inserisci il costo (in €) della quota di progetto destinata a ciascuna tipologia prioritaria. L'incidenza è calcolata sul costo totale del progetto.</p>
+  <table class="inp">
+    <tr><th>Tipologia prioritaria</th><th>Costo €</th></tr>
+    <tr><td>Irrigazione innovativa (efficienza ≥ 85%)</td><td><input type="number" id="p1_irr" min="0" value="0"></td></tr>
+    <tr><td>Invasi aziendali &lt; 250.000 mc</td><td><input type="number" id="p1_inv" min="0" value="0"></td></tr>
+    <tr><td>Nuovi impianti arborei</td><td><input type="number" id="p1_arb" min="0" value="0"></td></tr>
+    <tr><td>Filiera corta / vendita diretta</td><td><input type="number" id="p1_fil" min="0" value="0"></td></tr>
+    <tr><td>Silos / celle frigorifere (stoccaggio-conservazione)</td><td><input type="number" id="p1_sil" min="0" value="0"></td></tr>
+    <tr><td>Energie rinnovabili per autoconsumo</td><td><input type="number" id="p1_rin" min="0" value="0"></td></tr>
+    <tr><td>Macchinari e attrezzature 4.0</td><td><input type="number" id="p1_m40" min="0" value="0"></td></tr>
+  </table>
+</fieldset>
+
+<!-- ====== P2 COMPARTO ====== -->
+<fieldset>
+  <legend>4 · Comparto produttivo prevalente (P2 — max 3 pt)</legend>
+  <div class="grid">
+    <label class="f">Comparto prevalente per spesa di progetto
+      <select id="comparto">
+        <option value="ZOO">Zootecnico (3 pt)</option>
+        <option value="CER">Cerealicolo (2 pt)</option>
+        <option value="OLI">Olivicolo (2 pt)</option>
+        <option value="FLO">Florovivaistico (2 pt)</option>
+        <option value="ORT">Ortofrutticolo (1 pt)</option>
+        <option value="ALTRO">Altro comparto (0 pt)</option>
+      </select>
+    </label>
+  </div>
+</fieldset>
+
+<!-- ====== P3 LOCALIZZAZIONE ====== -->
+<fieldset>
+  <legend>5 · Localizzazione (P3 — max 12 pt)</legend>
+  <p class="hint">Indica la quota (%) di investimento/SAT ricadente in ciascuna zona. Il punteggio è attribuito con quota prevalente (≥ 50%).</p>
+  <table class="inp">
+    <tr><th>Zona</th><th>Punti</th><th>% investimento/SAT</th></tr>
+    <tr><td>Fonte idrica in aree non a rischio salinità</td><td>2</td><td><input type="number" id="p3_sal" min="0" max="100" value="0"></td></tr>
+    <tr><td>Zone Vulnerabili da Nitrati (ZVN)</td><td>2</td><td><input type="number" id="p3_zvn" min="0" max="100" value="0"></td></tr>
+    <tr><td>Area D — aree rurali con problemi di sviluppo</td><td>2</td><td><input type="number" id="p3_ard" min="0" max="100" value="0"></td></tr>
+    <tr><td>Zone delimitate Xylella fastidiosa</td><td>2</td><td><input type="number" id="p3_xyl" min="0" max="100" value="0"></td></tr>
+    <tr><td>Aree protette / Rete Natura 2000</td><td>1</td><td><input type="number" id="p3_n2k" min="0" max="100" value="0"></td></tr>
+    <tr><td>Zone svantaggiate o con vincolo paesaggistico</td><td>1</td><td><input type="number" id="p3_svv" min="0" max="100" value="0"></td></tr>
+  </table>
+  <div class="grid" style="margin-top:10px">
+    <label class="f">% SAT in zone con svantaggi naturali (escluse montane)
+      <input type="number" id="satSvantaggiata" min="0" max="100" value="0">
+      <small>Se ≥ 51% → aliquota di sostegno 65%</small>
+    </label>
+  </div>
+</fieldset>
+
+<!-- ====== P4 SOGGETTO ====== -->
+<fieldset>
+  <legend>6 · Caratteristiche soggetto richiedente (P4 — max 43 pt)</legend>
+  <p class="hint">Il criterio "Giovane agricoltore o Donna" (10 pt) è calcolato automaticamente da date di nascita/insediamento e genere.</p>
+  <div class="chk"><input type="checkbox" id="p4_cdiap"><span>Possesso qualifica <b>CD o IAP</b> (10 pt)</span></div>
+  <div class="chk"><input type="checkbox" id="p4_dop"><span>Adesione regimi <b>DOP / IGP / Prodotti di Puglia</b> (5 pt)</span></div>
+  <div class="chk"><input type="checkbox" id="p4_bio"><span>Adesione <b>Agricoltura Biologica</b> (3 pt)</span></div>
+  <div class="chk"><input type="checkbox" id="p4_coop"><span>Cooperativa / OP / <b>Accordi di filiera</b> (7 pt)</span></div>
+  <div class="chk"><input type="checkbox" id="p4_rlaq"><span>Iscrizione <b>Rete Lavoro Agricolo di Qualità</b> INPS (3 pt)</span></div>
+  <div class="chk"><input type="checkbox" id="p4_nuovo" checked><span><b>Nuovo beneficiario SRD01</b> — non già ammissibile nel CSR 2023-2027 (5 pt)</span></div>
+</fieldset>
+
+<!-- ====== P6 / P8 ====== -->
+<fieldset>
+  <legend>7 · Integrazione e qualità del progetto (P6 — max 5 pt · P8 — max 10 pt)</legend>
+  <div class="grid">
+    <label class="f">Partecipazione a interventi SRA (P6)
+      <select id="p6_sra">
+        <option value="0">Nessun intervento SRA (0 pt)</option>
+        <option value="1">1 intervento SRA (2 pt)</option>
+        <option value="2">2+ interventi SRA, di cui uno SRA24 (5 pt)</option>
+      </select>
+    </label>
+    <label class="f">Cantierabilità (P8)
+      <select id="p8_cant">
+        <option value="0">Non cantierabile / titoli da richiedere (0 pt)</option>
+        <option value="2">Istanza titoli abilitativi presentata (2 pt)</option>
+        <option value="4">Titoli abilitativi già acquisiti / non necessari (4 pt)</option>
+      </select>
+    </label>
+    <label class="f">Sostenibilità finanziaria (P8)
+      <select id="p8_fin">
+        <option value="0">Nessuna evidenza (0 pt)</option>
+        <option value="6">Mutuo dedicato o spesa ≤ € 50.000 (6 pt)</option>
+        <option value="4">Giacenza media ≥ 50% della spesa (4 pt)</option>
+      </select>
+    </label>
+  </div>
+</fieldset>
+
+<div class="actions">
+  <button class="primary" onclick="calcola()">⚙️ Calcola prefattibilità</button>
+  <button class="ghost" onclick="window.print()" id="btnPdf" style="display:none">🖨️ Salva PDF</button>
+  <button class="ghost" onclick="copiaJSON()" id="btnJson" style="display:none">📋 Copia JSON</button>
+</div>
+</div><!-- /formArea -->
+
+<div id="report"></div>
+
+</main>
+
+<script>
+"use strict";
+const EUR = v => v==null ? "—" : new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR",maximumFractionDigits:2}).format(v);
+const PCT = v => v==null ? "—" : new Intl.NumberFormat("it-IT",{maximumFractionDigits:1}).format(v)+"%";
+const num = id => { const v = document.getElementById(id).value; return v==="" ? null : parseFloat(v); };
+const val = id => document.getElementById(id).value;
+const chk = id => document.getElementById(id).checked;
+
+let ultimoEsito = null;
+
+function anniTra(da, a){
+  if(!da || !a) return null;
+  const d1 = new Date(da), d2 = new Date(a);
+  let anni = d2.getFullYear() - d1.getFullYear();
+  const m = d2.getMonth() - d1.getMonth();
+  if (m < 0 || (m === 0 && d2.getDate() < d1.getDate())) anni--;
+  return anni;
+}
+
+function calcola(){
+  const dds = val("dds") || new Date().toISOString().slice(0,10);
+  const inp = {
+    ditta: val("ditta"), cuaa: val("cuaa").toUpperCase(), comune: val("comune"),
+    soggettivita: val("soggettivita"), soloSilvAcqua: chk("soloSilvAcqua"),
+    nascita: val("nascita"), insediamento: val("insediamento"), genere: val("genere"), dds,
+    psTotale: num("psTotale"), psOlio: num("psOlio"), ote: num("ote"),
+    costoTot: num("costoTot"), giaAmmesso: num("giaAmmesso") ?? 0,
+    soloOlivicolo: chk("soloOlivicolo"),
+    p1: { irr:num("p1_irr")??0, inv:num("p1_inv")??0, arb:num("p1_arb")??0, fil:num("p1_fil")??0, sil:num("p1_sil")??0, rin:num("p1_rin")??0, m40:num("p1_m40")??0 },
+    comparto: val("comparto"),
+    p3: { sal:num("p3_sal")??0, zvn:num("p3_zvn")??0, ard:num("p3_ard")??0, xyl:num("p3_xyl")??0, n2k:num("p3_n2k")??0, svv:num("p3_svv")??0 },
+    satSvantaggiata: num("satSvantaggiata")??0,
+    p4: { cdiap:chk("p4_cdiap"), dop:chk("p4_dop"), bio:chk("p4_bio"), coop:chk("p4_coop"), rlaq:chk("p4_rlaq"), nuovo:chk("p4_nuovo") },
+    p6: parseInt(val("p6_sra")), p8cant: parseInt(val("p8_cant")), p8fin: parseInt(val("p8_fin"))
+  };
+
+  // ---- Qualifica Giovane Agricoltore ----
+  const eta = anniTra(inp.nascita, dds);                 // anni compiuti alla DdS
+  const anniIns = anniTra(inp.insediamento, dds);        // anni dall'insediamento
+  const giovane = (eta!=null && anniIns!=null) ? (eta < 41 && anniIns < 5) : null; // 41 non compiuti, insediato < 5 anni
+  const donna = inp.genere === "F";
+
+  // ================= FASE 1 — KILLER CRITERIA =================
+  const kc = [];
+  // CR01
+  let cr01ok, cr01note;
+  if (inp.soggettivita === "ALTRO") { cr01ok=false; cr01note="Soggetto diverso da Imprenditore Agricolo / OP / Cooperativa / Rete di Imprese."; }
+  else if (inp.soloSilvAcqua) { cr01ok=false; cr01note="Attività esclusiva di silvicoltura/acquacoltura: esclusa."; }
+  else { cr01ok=true; cr01note="Soggetto ammissibile ("+({IA:"Imprenditore Agricolo art. 2135",OP:"Organizzazione di Produttori",COOP:"Cooperativa agricola",RETE:"Rete di Imprese"})[inp.soggettivita]+")."; }
+  kc.push({cod:"CR01", nome:"Soggettività", ok:cr01ok, nota:cr01note});
+
+  // CR02
+  let cr02ok=null, cr02note;
+  if (inp.psTotale==null && !(inp.soloOlivicolo && inp.psOlio!=null)) { cr02note="DATO MANCANTE: Produzione Standard totale."; }
+  else if (inp.psTotale!=null && inp.psTotale >= 15000) { cr02ok=true; cr02note="PS totale "+EUR(inp.psTotale)+" ≥ € 15.000."; }
+  else if (inp.soloOlivicolo && inp.psOlio!=null && inp.psOlio >= 5000) { cr02ok=true; cr02note="Deroga olivicola: PS olivicola "+EUR(inp.psOlio)+" ≥ € 5.000 (investimento unicamente olivicolo)."; }
+  else { cr02ok=false; cr02note="PS totale "+EUR(inp.psTotale)+" < € 15.000" + (inp.soloOlivicolo ? " e PS olivicola "+EUR(inp.psOlio)+" < € 5.000." : " (deroga olivicola non applicabile)."); }
+  kc.push({cod:"CR02", nome:"Dimensione economica (PS)", ok:cr02ok, nota:cr02note});
+
+  // CR27
+  let cr27ok=null, cr27note;
+  if (inp.costoTot==null) cr27note="DATO MANCANTE: costo totale investimento.";
+  else { cr27ok = inp.costoTot >= 30000; cr27note = "Spesa ammissibile "+EUR(inp.costoTot)+(cr27ok?" ≥":" <")+" € 30.000."; }
+  kc.push({cod:"CR27", nome:"Soglia minima di spesa", ok:cr27ok, nota:cr27note});
+
+  // CR28
+  let cr28ok=null, cr28note;
+  if (inp.costoTot==null) cr28note="DATO MANCANTE: costo totale investimento.";
+  else { const cum = inp.costoTot + inp.giaAmmesso; cr28ok = cum <= 3000000; cr28note = "Cumulato 2023-2027: "+EUR(cum)+(cr28ok?" ≤":" >")+" € 3.000.000 (di cui già ammessi "+EUR(inp.giaAmmesso)+")."; }
+  kc.push({cod:"CR28", nome:"Massimale di spesa", ok:cr28ok, nota:cr28note});
+
+  const datiMancantiKC = kc.some(k => k.ok===null);
+  const ammissibile = kc.every(k => k.ok===true);
+  const bocciato = kc.some(k => k.ok===false);
+
+  // ================= FASE 2 — ALIQUOTA =================
+  let aliquota=null, aliquotaNota;
+  if (giovane === true) { aliquota=80; aliquotaNota="Giovane Agricoltore (età "+eta+" anni alla DdS, insediato da "+anniIns+" anni)."; }
+  else if (inp.satSvantaggiata >= 51) { aliquota=65; aliquotaNota="≥ 51% SAT in zone con svantaggi naturali (escluse montane): "+PCT(inp.satSvantaggiata)+"."; }
+  else if (giovane === null && (inp.nascita==="" || inp.insediamento==="")) { aliquota=60; aliquotaNota="Aliquota base 60% — DATO MANCANTE per verifica Giovane Agricoltore (data nascita/insediamento)."; }
+  else { aliquota=60; aliquotaNota="Aliquota base."; }
+  const contributo = (inp.costoTot!=null && aliquota!=null) ? inp.costoTot * aliquota/100 : null;
+
+  // ================= FASE 3 — PUNTEGGI =================
+  const pts = [];
+
+  // ---- P1 ----
+  const p1costo = Object.values(inp.p1).reduce((a,b)=>a+b,0);
+  let p1=0, p1note, p1inc=null;
+  if (inp.costoTot==null || inp.costoTot===0) { p1note="DATO MANCANTE: costo totale progetto — calcolo non eseguito."; p1=null; }
+  else {
+    p1inc = Math.min(100, p1costo / inp.costoTot * 100);
+    if (p1inc >= 30 && p1inc <= 40) p1=2;
+    else if (p1inc > 40 && p1inc <= 50) p1=4;
+    else if (p1inc > 50 && p1inc <= 60) p1=6;
+    else if (p1inc > 60 && p1inc <= 70) p1=9;
+    else if (p1inc > 70 && p1inc <= 80) p1=12;
+    else if (p1inc > 80 && p1inc <= 90) p1=15;
+    else if (p1inc > 90) p1=17;
+    else p1=0;
+    p1note="Investimenti prioritari "+EUR(p1costo)+" su "+EUR(inp.costoTot)+" → incidenza "+PCT(p1inc)+".";
+  }
+  pts.push({cod:"P1", nome:"Finalità specifiche dell'intervento", max:17, pt:p1, nota:p1note});
+
+  // ---- P2 ----
+  const p2map = {ZOO:[3,"Zootecnico"], CER:[2,"Cerealicolo"], OLI:[2,"Olivicolo"], FLO:[2,"Florovivaistico"], ORT:[1,"Ortofrutticolo"], ALTRO:[0,"Altro comparto"]};
+  const [p2, p2lbl] = p2map[inp.comparto];
+  pts.push({cod:"P2", nome:"Comparto produttivo prevalente", max:3, pt:p2, nota:"Comparto prevalente per spesa: "+p2lbl+"."});
+
+  // ---- P3 ----
+  const p3items = [
+    ["Fonte idrica non a rischio salinità", 2, inp.p3.sal],
+    ["Zone Vulnerabili da Nitrati (ZVN)", 2, inp.p3.zvn],
+    ["Area D — problemi di sviluppo", 2, inp.p3.ard],
+    ["Zone Xylella", 2, inp.p3.xyl],
+    ["Aree protette / Natura 2000", 1, inp.p3.n2k],
+    ["Zone svantaggiate / vincolo paesaggistico", 1, inp.p3.svv]
+  ];
+  let p3=0; const p3det=[];
+  for (const [n,p,q] of p3items){ if (q>=50){ p3+=p; p3det.push(n+" ("+p+" pt, quota "+PCT(q)+")"); } }
+  p3 = Math.min(12, p3);
+  pts.push({cod:"P3", nome:"Localizzazione dell'investimento", max:12, pt:p3, nota: p3det.length? "Zone con quota prevalente (≥50%): "+p3det.join("; ")+"." : "Nessuna zona con quota prevalente (≥50%)."});
+
+  // ---- P4 ----
+  let p4=0; const p4det=[];
+  let p4gdNote;
+  if (giovane===true || donna) { p4+=10; p4det.push((giovane?"Giovane agricoltore":"Titolare donna")+" (10 pt)"); }
+  else if (giovane===null && !donna && inp.genere!=="NA") { p4gdNote="Giovane/Donna: DATO MANCANTE (date nascita/insediamento) — 0 pt prudenziale."; }
+  if (inp.p4.cdiap){ p4+=10; p4det.push("Qualifica CD/IAP (10 pt)"); }
+  if (inp.p4.dop){ p4+=5; p4det.push("DOP/IGP/Prodotti di Puglia (5 pt)"); }
+  if (inp.p4.bio){ p4+=3; p4det.push("Agricoltura Biologica (3 pt)"); }
+  if (inp.p4.coop){ p4+=7; p4det.push("Coop/OP/Accordo di filiera (7 pt)"); }
+  if (inp.p4.rlaq){ p4+=3; p4det.push("Rete Lavoro Agricolo di Qualità (3 pt)"); }
+  if (inp.p4.nuovo){ p4+=5; p4det.push("Nuovo beneficiario SRD01 (5 pt)"); }
+  pts.push({cod:"P4", nome:"Caratteristiche del soggetto richiedente", max:43, pt:p4, nota:(p4det.length? p4det.join("; ")+"." : "Nessun requisito soggettivo dichiarato.") + (p4gdNote? " "+p4gdNote : "")});
+
+  // ---- P5 ----
+  let p5=0, p5note;
+  if (inp.ote==null || inp.ote===0 || inp.costoTot==null) { p5=null; p5note="DATO MANCANTE: valore OTE"+(inp.costoTot==null?" e costo investimento":"")+" — calcolo non eseguito."; }
+  else {
+    const r = inp.costoTot / inp.ote;
+    if (r <= 1.00) p5=10; else if (r <= 2.00) p5=8; else if (r <= 3.00) p5=6; else if (r <= 5.00) p5=4; else if (r <= 7.00) p5=2; else p5=0;
+    p5note="Rapporto investimento/OTE = "+EUR(inp.costoTot)+" / "+EUR(inp.ote)+" = "+r.toFixed(2)+".";
+  }
+  pts.push({cod:"P5", nome:"Dimensione economica aziendale", max:10, pt:p5, nota:p5note});
+
+  // ---- P6 ----
+  const p6 = inp.p6===2 ? 5 : inp.p6===1 ? 2 : 0;
+  pts.push({cod:"P6", nome:"Integrazione con interventi SRA", max:5, pt:p6, nota: inp.p6===2 ? "Partecipazione a 2+ interventi SRA di cui uno SRA24." : inp.p6===1 ? "Partecipazione a 1 intervento SRA." : "Nessuna integrazione SRA dichiarata."});
+
+  // ---- P8 ----
+  let p8fin = inp.p8fin;
+  let p8finNote = p8fin===6 ? "Mutuo dedicato o spesa ≤ € 50.000 (6 pt)" : p8fin===4 ? "Giacenza media ≥ 50% spesa (4 pt)" : "Nessuna evidenza finanziaria (0 pt)";
+  // auto-bonus: se spesa ≤ 50k la sostenibilità vale comunque 6
+  if (inp.costoTot!=null && inp.costoTot <= 50000 && p8fin < 6) { p8fin = 6; p8finNote = "Spesa "+EUR(inp.costoTot)+" ≤ € 50.000 → sostenibilità automatica (6 pt)"; }
+  const p8 = inp.p8cant + p8fin;
+  pts.push({cod:"P8", nome:"Qualità del progetto", max:10, pt:p8, nota:"Cantierabilità: "+(inp.p8cant===4?"titoli acquisiti (4 pt)":inp.p8cant===2?"istanza presentata (2 pt)":"non cantierabile (0 pt)")+"; "+p8finNote+"."});
+
+  const datiMancantiPts = pts.filter(p=>p.pt===null).map(p=>p.cod);
+  const totale = pts.reduce((a,p)=>a+(p.pt||0),0);
+  const sogliaOk = totale >= 30;
+
+  // ================= ESITO =================
+  let esito, esitoCls, esitoMsg;
+  if (bocciato) { esito="NON IDONEO"; esitoCls="ko"; esitoMsg="Uno o più requisiti minimi (killer criteria) non sono soddisfatti."; }
+  else if (datiMancantiKC) { esito="VERIFICA INCOMPLETA"; esitoCls="warn"; esitoMsg="Dati mancanti sui requisiti minimi: integrare le informazioni per completare la verifica."; }
+  else if (!sogliaOk) { esito="NON IDONEO"; esitoCls="ko"; esitoMsg="Requisiti minimi soddisfatti ma punteggio "+totale+" pt < soglia minima 30 pt."; }
+  else { esito="IDONEO"; esitoCls="ok"; esitoMsg="Requisiti minimi soddisfatti e punteggio sopra la soglia di 30 pt."; }
+
+  // ================= CHECK-LIST DOC =================
+  const docs = [
+    ["DOC01","Documento di identità del titolare/legale rappresentante", true],
+    ["DOC02","Fascicolo aziendale AGEA validato e aggiornato", true],
+    ["DOC03","Relazione tecnica asseverata del progetto", true],
+    ["DOC04","Preventivi di spesa confrontabili (n. 3 per voce)", true],
+    ["DOC05","Titoli di possesso/disponibilità degli immobili oggetto di intervento", true],
+    ["DOC06","Elaborati grafici, computo metrico e layout (opere strutturali)", inp.p1.sil>0 || inp.p1.inv>0],
+    ["DOC07","Titoli abilitativi edilizi acquisiti o istanza presentata", inp.p8cant>0],
+    ["DOC08","Attestazione qualifica CD/IAP", inp.p4.cdiap],
+    ["DOC09","Documentazione primo insediamento Giovane Agricoltore", giovane===true],
+    ["DOC10","Certificato adesione DOP/IGP/Prodotti di Puglia", inp.p4.dop],
+    ["DOC11","Certificato di operatore biologico (notifica SINAB)", inp.p4.bio],
+    ["DOC12","Atto costitutivo/statuto Coop-OP o accordo di filiera sottoscritto", inp.p4.coop || ["OP","COOP","RETE"].includes(inp.soggettivita)],
+    ["DOC13","Certificazione iscrizione Rete Lavoro Agricolo di Qualità (INPS)", inp.p4.rlaq],
+    ["DOC14","Dichiarazione istituto di credito (mutuo) o attestazione giacenza media", inp.p8fin>0],
+    ["DOC15","Concessione/autorizzazione idrica e progetto irriguo (efficienza ≥ 85%)", inp.p1.irr>0 || inp.p1.inv>0],
+    ["DOC16","Perizia di interconnessione / requisiti 4.0 dei macchinari", inp.p1.m40>0],
+    ["DOC17","Domanda di partecipazione interventi SRA (integrazione)", inp.p6>0],
+  ].filter(d=>d[2]);
+
+  ultimoEsito = { input:inp, eta, anniIns, giovane, donna, killerCriteria:kc, esito, aliquota, contributo, punteggi:pts, totale, datiMancanti:datiMancantiPts, documenti:docs.map(d=>({cod:d[0],desc:d[1]})) };
+
+  // ================= RENDER =================
+  const oggi = new Date().toLocaleDateString("it-IT",{day:"2-digit",month:"long",year:"numeric"});
+  let h = `
+  <div class="r-head">
+    <div>
+      <h2>Studio di Prefattibilità — Intervento SRD01.05</h2>
+      <div class="sub">Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027</div>
+    </div>
+    <div class="meta">
+      Data elaborazione: <b>${oggi}</b><br>
+      Rif. DdS: ${new Date(dds).toLocaleDateString("it-IT")}
+    </div>
+  </div>
+
+  <table class="r">
+    <tr><th style="width:25%">Ditta</th><td>${inp.ditta||"—"}</td><th style="width:15%">CUAA</th><td>${inp.cuaa||"—"}</td></tr>
+    <tr><th>Soggettività</th><td>${({IA:"Imprenditore Agricolo (art. 2135 c.c.)",OP:"Organizzazione di Produttori",COOP:"Cooperativa agricola",RETE:"Rete di Imprese",ALTRO:"Altro"})[inp.soggettivita]}</td><th>Sede</th><td>${inp.comune||"—"}</td></tr>
+    <tr><th>Titolare</th><td>${inp.genere==="F"?"Donna":inp.genere==="M"?"Uomo":"Società"}${eta!=null?", "+eta+" anni alla DdS":""}</td>
+        <th>Giovane Agricoltore</th><td>${giovane===true?"<b>SÌ</b> (insediato da "+anniIns+" anni)":giovane===false?"No":"<span class='miss'>DATO MANCANTE</span>"}</td></tr>
+  </table>
+
+  <div class="esito ${esitoCls}"><span class="badge">${esitoCls==="ok"?"✅":esitoCls==="ko"?"⛔":"⚠️"}</span>
+    <span>ESITO AMMISSIBILITÀ: ${esito}<br><small style="font-weight:400;font-size:13px">${esitoMsg}</small></span></div>
+
+  <h3 class="r">Fase 1 — Verifica requisiti minimi (killer criteria)</h3>
+  <table class="r">
+    <tr><th style="width:8%">Cod.</th><th style="width:26%">Requisito</th><th style="width:10%">Esito</th><th>Dettaglio</th></tr>
+    ${kc.map(k=>`<tr><td><b>${k.cod}</b></td><td>${k.nome}</td>
+      <td class="${k.ok===true?"pass-row":k.ok===false?"fail-row":"miss"}">${k.ok===true?"✔ OK":k.ok===false?"✘ KO":"⚠ N.D."}</td>
+      <td>${k.nota}</td></tr>`).join("")}
+  </table>`;
+
+  if (!bocciato) {
+    h += `
+  <h3 class="r">Fase 2 — Quadro economico e aliquota di sostegno</h3>
+  <table class="r">
+    <tr><th>Spesa totale ammissibile</th><th>Aliquota applicabile</th><th>Contributo concedibile</th><th>Quota privata</th></tr>
+    <tr>
+      <td class="num">${EUR(inp.costoTot)}</td>
+      <td class="num"><b>${aliquota}%</b></td>
+      <td class="num"><b>${EUR(contributo)}</b></td>
+      <td class="num">${contributo!=null?EUR(inp.costoTot-contributo):"—"}</td>
+    </tr>
+  </table>
+  <p class="note">Motivazione aliquota: ${aliquotaNota}</p>
+
+  <h3 class="r">Fase 3 — Punteggio di selezione (soglia minima 30 pt)</h3>
+  <table class="r">
+    <tr><th style="width:7%">Princ.</th><th style="width:30%">Criterio</th><th class="num" style="width:9%">Max</th><th class="num" style="width:11%">Punti</th><th>Dettaglio calcolo</th></tr>
+    ${pts.map(p=>`<tr><td><b>${p.cod}</b></td><td>${p.nome}</td><td class="num">${p.max}</td>
+      <td class="num">${p.pt===null?"<span class='miss'>N.D.</span>":"<b>"+p.pt+"</b>"}</td><td>${p.nota}</td></tr>`).join("")}
+    <tr class="tot"><td colspan="2">PUNTEGGIO TOTALE</td><td class="num">100</td><td class="num">${totale}</td>
+      <td>${sogliaOk?"≥ 30 pt — soglia minima superata":"< 30 pt — soglia minima NON superata"}${datiMancantiPts.length?" · Principi non calcolati per dati mancanti: "+datiMancantiPts.join(", "):""}</td></tr>
+  </table>`;
+  }
+
+  h += `
+  <h3 class="r">Check-list documentale (in base al profilo)</h3>
+  <ul class="docs">
+    ${docs.map(d=>`<li><b>${d[0]}</b> ${d[1]}</li>`).join("")}
+  </ul>
+
+  <div class="disclaimer">
+    Il presente studio di prefattibilità ha valore indicativo ed è elaborato sulla base dei parametri dichiarati dal richiedente
+    (fascicolo aziendale e preventivo di progetto). L'esito definitivo di ammissibilità e l'attribuzione del punteggio restano
+    di competenza dell'istruttoria dell'Autorità di Gestione. I punteggi di localizzazione (P3) sono attribuiti con criterio di
+    prevalenza (quota ≥ 50% dell'investimento/SAT nella zona).
+  </div>
+
+  <div class="firma">
+    <div class="box">
+      Il Tecnico<br>
+      <div class="nome">Dott. Agr. Ruggero Manca<br><small style="font-weight:400">ODAF Lecce n° 636 · idearurale</small></div>
+    </div>
+  </div>`;
+
+  const rep = document.getElementById("report");
+  rep.innerHTML = h;
+  rep.classList.add("visible");
+  document.getElementById("btnPdf").style.display = "inline-block";
+  document.getElementById("btnJson").style.display = "inline-block";
+  rep.scrollIntoView({behavior:"smooth"});
+}
+
+function copiaJSON(){
+  if(!ultimoEsito) return;
+  navigator.clipboard.writeText(JSON.stringify(ultimoEsito, null, 2))
+    .then(()=>alert("JSON copiato negli appunti."))
+    .catch(()=>alert("Copia non riuscita: aprire la console del browser."));
+}
+
+// default DdS = oggi
+document.getElementById("dds").value = new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>
