@@ -27,18 +27,27 @@
   .chk{display:flex;align-items:flex-start;gap:8px;font-size:14px;padding:6px 4px}
   .chk input{margin-top:3px;width:16px;height:16px;accent-color:var(--green)}
   .hint{font-size:12px;color:var(--grey);margin:2px 0 0}
-  .subhead{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--green-light);margin:14px 0 8px;border-bottom:1px solid var(--green-pale);padding-bottom:4px}
   table.inp{width:100%;border-collapse:collapse;font-size:14px}
   table.inp th,table.inp td{border:1px solid var(--line);padding:6px 8px;text-align:left}
   table.inp th{background:var(--green-pale);font-size:12.5px}
   table.inp td input{border:1px solid var(--line);border-radius:4px;padding:5px 8px;width:140px}
-  table.inp td input[type=checkbox]{width:16px;height:16px;accent-color:var(--green)}
   .actions{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0}
   button{font-size:15px;font-weight:700;padding:12px 22px;border-radius:8px;border:none;cursor:pointer}
   button.primary{background:var(--green);color:#fff}
   button.primary:hover{background:var(--green-light)}
   button.ghost{background:#fff;color:var(--green);border:2px solid var(--green)}
   button.ghost:hover{background:var(--green-pale)}
+  button.small{font-size:13px;padding:7px 14px;border-radius:6px}
+  button.danger{background:#fff;color:var(--red);border:1.5px solid var(--red);font-size:12px;padding:5px 10px}
+
+  /* ---- voci di spesa ---- */
+  .voce{border:1.5px solid var(--green-pale);border-left:5px solid var(--green-light);border-radius:8px;padding:12px 14px;margin:0 0 12px;background:#fafdfb}
+  .voce .vhead{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+  .voce .vhead label.f{flex:1;min-width:180px}
+  .voce .vspec{border-top:1px dashed var(--line);margin-top:8px;padding-top:8px}
+  .voce .vspec .grid{gap:8px 14px}
+  .car40{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2px 14px;margin-top:4px}
+  .vtot{font-weight:700;font-size:14px;margin:8px 0;color:var(--green)}
 
   /* ============ REPORT ============ */
   #report{display:none;background:#fff;border:1px solid var(--line);border-radius:10px;padding:34px 40px;margin-top:10px}
@@ -60,11 +69,14 @@
   tr.tot td{font-weight:800;background:#f1f8f1}
   .fail-row{color:var(--red);font-weight:700}
   .pass-row{color:var(--green)}
+  .prio-row{color:var(--blue);font-weight:700}
   .miss{color:var(--amber);font-weight:700}
   .note{font-size:12px;color:var(--grey);margin:4px 0 0}
   ul.docs{margin:6px 0 0;padding-left:0;list-style:none}
-  ul.docs li{padding:5px 0 5px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+  ul.docs li{padding:5px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
   ul.docs li b{color:var(--green);display:inline-block;min-width:62px}
+  .sian-warn{background:#fff3e0;border:2px solid var(--amber);border-radius:8px;padding:12px 16px;font-size:13.5px;margin:12px 0;color:#5d3200}
+  .sian-warn b{color:var(--amber)}
   .disclaimer{margin-top:30px;font-size:11.5px;color:var(--grey);border-top:1px solid var(--line);padding-top:12px}
   .firma{margin-top:34px;display:flex;justify-content:flex-end}
   .firma .box{text-align:center;font-size:13px}
@@ -85,7 +97,7 @@
 
 <header class="appbar">
   <h1>Studio di Prefattibilità — SRD01.05</h1>
-  <p>Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027 · Motore di verifica ammissibilità e punteggio</p>
+  <p>Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027 · Verifica ammissibilità, analisi tecnica investimenti e punteggio</p>
 </header>
 
 <main>
@@ -115,6 +127,7 @@
     </label>
   </div>
   <div class="chk"><input type="checkbox" id="soloSilvAcqua"><span>L'azienda pratica <b>esclusivamente</b> silvicoltura e/o acquacoltura</span></div>
+  <div class="chk"><input type="checkbox" id="affitto"><span>Gli investimenti ricadono (anche in parte) su terreni o fabbricati <b>in affitto/comodato</b> (richiede DOC02: autorizzazione del proprietario per 5 anni post-saldo)</span></div>
   <div class="grid" style="margin-top:8px">
     <label class="f">Data di nascita titolare
       <input type="date" id="nascita">
@@ -138,7 +151,7 @@
 
 <!-- ====== DIMENSIONE ECONOMICA ====== -->
 <fieldset>
-  <legend>2 · Dimensione economica e progetto</legend>
+  <legend>2 · Dimensione economica</legend>
   <div class="grid">
     <label class="f">Produzione Standard (PS) totale €
       <input type="number" id="psTotale" min="0" step="0.01" placeholder="es. 45000">
@@ -151,6 +164,7 @@
     </label>
     <label class="f">Costo totale investimento ammissibile €
       <input type="number" id="costoTot" min="0" step="0.01" placeholder="escluse spese generali">
+      <small>Se compili le voci di spesa (sez. 3) viene ricalcolato automaticamente dalla somma delle voci ammissibili</small>
     </label>
     <label class="f">Investimenti SRD01 già ammessi 2023–2027 €
       <input type="number" id="giaAmmesso" min="0" step="0.01" value="0">
@@ -160,20 +174,13 @@
   <div class="chk"><input type="checkbox" id="soloOlivicolo"><span>L'investimento riguarda <b>unicamente</b> il comparto olivicolo (attiva deroga PS ≥ € 5.000)</span></div>
 </fieldset>
 
-<!-- ====== P1 PRIORITARI ====== -->
+<!-- ====== VOCI DI SPESA / ANALISI TECNICA ====== -->
 <fieldset>
-  <legend>3 · Investimenti prioritari (P1 — max 17 pt)</legend>
-  <p class="hint">Inserisci il costo (in €) della quota di progetto destinata a ciascuna tipologia prioritaria. L'incidenza è calcolata sul costo totale del progetto.</p>
-  <table class="inp">
-    <tr><th>Tipologia prioritaria</th><th>Costo €</th></tr>
-    <tr><td>Irrigazione innovativa (efficienza ≥ 85%)</td><td><input type="number" id="p1_irr" min="0" value="0"></td></tr>
-    <tr><td>Invasi aziendali &lt; 250.000 mc</td><td><input type="number" id="p1_inv" min="0" value="0"></td></tr>
-    <tr><td>Nuovi impianti arborei</td><td><input type="number" id="p1_arb" min="0" value="0"></td></tr>
-    <tr><td>Filiera corta / vendita diretta</td><td><input type="number" id="p1_fil" min="0" value="0"></td></tr>
-    <tr><td>Silos / celle frigorifere (stoccaggio-conservazione)</td><td><input type="number" id="p1_sil" min="0" value="0"></td></tr>
-    <tr><td>Energie rinnovabili per autoconsumo</td><td><input type="number" id="p1_rin" min="0" value="0"></td></tr>
-    <tr><td>Macchinari e attrezzature 4.0</td><td><input type="number" id="p1_m40" min="0" value="0"></td></tr>
-  </table>
+  <legend>3 · Voci di spesa — Analisi tecnica dell'investimento</legend>
+  <p class="hint">Inserisci ogni voce di spesa del preventivo. Per ciascuna categoria l'app applica le regole di validazione (requisito 4.0, esclusione rinfittimenti, zona agricola, soglie di efficienza irrigua), determina se la voce è <b>prioritaria</b> ai fini del P1 e genera la documentazione giustificativa richiesta.</p>
+  <div id="vociBox"></div>
+  <div class="vtot" id="vociTot"></div>
+  <button type="button" class="ghost small" onclick="addVoce()">＋ Aggiungi voce di spesa</button>
 </fieldset>
 
 <!-- ====== P2 COMPARTO ====== -->
@@ -272,8 +279,184 @@ const PCT = v => v==null ? "—" : new Intl.NumberFormat("it-IT",{maximumFractio
 const num = id => { const v = document.getElementById(id).value; return v==="" ? null : parseFloat(v); };
 const val = id => document.getElementById(id).value;
 const chk = id => document.getElementById(id).checked;
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 
 let ultimoEsito = null;
+
+// ================= VOCI DI SPESA =================
+const CATEGORIE = {
+  M:   "Macchinari / attrezzature (standard)",
+  M40: "Macchinari / attrezzature 4.0",
+  ARB: "Nuovo impianto arboreo",
+  ED:  "Opere edili / fabbricati rurali",
+  IRR: "Impianto irriguo",
+  INV: "Invaso aziendale",
+  REN: "Energie rinnovabili",
+  FIL: "Filiera corta / vendita diretta",
+  SIL: "Silos / celle frigorifere",
+  ALTRO: "Altra spesa"
+};
+const CAR40 = [
+  "Programmazione hardware/software",
+  "Interconnessione remota",
+  "Integrazione logistica automatizzata",
+  "Interfaccia uomo-macchina intuitiva",
+  "Telemanutenzione",
+  "Monitoraggio parametri di processo"
+];
+
+let vociState = [];
+
+function nuovaVoce(){
+  return { desc:"", cat:"M", importo:0,
+    marca:"", modello:"", funzioni:"", prezzario:false, unico:false,
+    car40:[false,false,false,false,false,false],
+    specie:"", superficie:"", sesto:"", passaporto:false, giaFinanziata:false, rinfittimento:false,
+    zonaAgricola:true, destProduttiva:true,
+    efficienza:"", reflue:false, autorizzazione:false, contatori:false,
+    capacita:"", autoconsumo:true };
+}
+function addVoce(){ vociState.push(nuovaVoce()); renderVoci(); }
+function delVoce(i){ vociState.splice(i,1); renderVoci(); }
+function updVoce(i, campo, v){ vociState[i][campo] = v; aggiornaTotaleVoci(); }
+function updVoceChk(i, campo, v){ vociState[i][campo] = v; }
+function updCar(i, j, v){ vociState[i].car40[j] = v; }
+function cambiaCat(i, v){ vociState[i].cat = v; renderVoci(); }
+
+function specHTML(v, i){
+  switch(v.cat){
+    case "M": case "M40": {
+      let h = `<div class="grid">
+        <label class="f">Marca<input type="text" value="${esc(v.marca)}" oninput="updVoce(${i},'marca',this.value)"></label>
+        <label class="f">Modello<input type="text" value="${esc(v.modello)}" oninput="updVoce(${i},'modello',this.value)"></label>
+        <label class="f">Funzioni (produttività, risparmio energetico, sicurezza)<input type="text" value="${esc(v.funzioni)}" oninput="updVoce(${i},'funzioni',this.value)"></label>
+      </div>
+      <div class="chk"><input type="checkbox" ${v.prezzario?"checked":""} onchange="updVoceChk(${i},'prezzario',this.checked)"><span>Presente nel <b>Prezzario Informatore Agrario</b> (basta 1 preventivo S.D.P.M. con PDF dal portale; altrimenti 3 preventivi SIAN — DOC12)</span></div>
+      <div class="chk"><input type="checkbox" ${v.unico?"checked":""} onchange="updVoceChk(${i},'unico',this.checked)"><span>Bene <b>unico/innovativo</b> non confrontabile (richiede DOC13: dichiarazione di unicità del fornitore + relazione del tecnico)</span></div>`;
+      if (v.cat==="M40"){
+        h += `<p class="hint" style="margin-top:6px"><b>Verifica Agricoltura 4.0</b> — seleziona le caratteristiche possedute (minimo 2 per la priorità):</p><div class="car40">`;
+        CAR40.forEach((c,j)=>{ h += `<div class="chk"><input type="checkbox" ${v.car40[j]?"checked":""} onchange="updCar(${i},${j},this.checked)"><span>${c}</span></div>`; });
+        h += `</div>`;
+      }
+      return h;
+    }
+    case "ARB": return `<div class="grid">
+        <label class="f">Specie<input type="text" value="${esc(v.specie)}" oninput="updVoce(${i},'specie',this.value)"></label>
+        <label class="f">Superficie (ha)<input type="number" min="0" step="0.01" value="${esc(v.superficie)}" oninput="updVoce(${i},'superficie',this.value)"></label>
+        <label class="f">Sesto di impianto<input type="text" value="${esc(v.sesto)}" placeholder="es. 6 × 3 m" oninput="updVoce(${i},'sesto',this.value)"></label>
+      </div>
+      <div class="chk"><input type="checkbox" ${v.passaporto?"checked":""} onchange="updVoceChk(${i},'passaporto',this.checked)"><span>Materiale vivaistico con <b>passaporto fitosanitario</b></span></div>
+      <div class="chk"><input type="checkbox" ${v.giaFinanziata?"checked":""} onchange="updVoceChk(${i},'giaFinanziata',this.checked)"><span>Specie <b>già finanziata</b> in precedenti Avvisi SRD01 (→ voce non prioritaria)</span></div>
+      <div class="chk"><input type="checkbox" ${v.rinfittimento?"checked":""} onchange="updVoceChk(${i},'rinfittimento',this.checked)"><span><b>Rinfittimento / ripristino fallanze</b> (→ spesa NON ammissibile)</span></div>
+      <p class="hint">Spesa calcolata forfettariamente a Costi Standard — Metodologia UCS Impianti Arborei (Rete Rurale Nazionale). Richiede DOC06: elaborati grafici con ubicazione puntuale.</p>`;
+    case "ED": return `
+      <div class="chk"><input type="checkbox" ${v.zonaAgricola?"checked":""} onchange="updVoceChk(${i},'zonaAgricola',this.checked)"><span>Ubicazione in <b>zona agricola</b> (requisito di ammissibilità)</span></div>
+      <div class="chk"><input type="checkbox" ${v.destProduttiva?"checked":""} onchange="updVoceChk(${i},'destProduttiva',this.checked)"><span>Destinazione d'uso <b>produttiva</b> (requisito di ammissibilità)</span></div>
+      <p class="hint">Richiede DOC09 (computo metrico estimativo redatto esclusivamente sul Prezzario Regionale OOPP Puglia luglio 2025), DOC08 (relazione asseverata cantierabilità/conformità urbanistica) e DOC10 (titoli abilitativi o prova della richiesta).</p>`;
+    case "IRR": return `<div class="grid">
+        <label class="f">Indice di efficienza dell'impianto (%)<input type="number" min="0" max="100" value="${esc(v.efficienza)}" oninput="updVoce(${i},'efficienza',this.value)"><small>Prioritario se ≥ 85% (o ≥ 80% con acque reflue)</small></label>
+      </div>
+      <div class="chk"><input type="checkbox" ${v.reflue?"checked":""} onchange="updVoceChk(${i},'reflue',this.checked)"><span>Utilizzo di <b>acque reflue</b> affinate</span></div>
+      <div class="chk"><input type="checkbox" ${v.autorizzazione?"checked":""} onchange="updVoceChk(${i},'autorizzazione',this.checked)"><span><b>Autorizzazione</b> all'emungimento / prelievo consortile / uso reflue già disponibile (DOC04)</span></div>
+      <div class="chk"><input type="checkbox" ${v.contatori?"checked":""} onchange="updVoceChk(${i},'contatori',this.checked)"><span><b>Misuratori di consumo idrico</b> presenti o previsti in progetto</span></div>`;
+    case "INV": return `<div class="grid">
+        <label class="f">Capacità invaso (mc)<input type="number" min="0" value="${esc(v.capacita)}" oninput="updVoce(${i},'capacita',this.value)"><small>Prioritario se &lt; 250.000 mc</small></label>
+      </div>`;
+    case "REN": return `
+      <div class="chk"><input type="checkbox" ${v.autoconsumo?"checked":""} onchange="updVoceChk(${i},'autoconsumo',this.checked)"><span>Impianto destinato all'<b>autoconsumo</b> aziendale (requisito per la priorità)</span></div>
+      <p class="hint">Richiede DOC14: relazione specifica redatta da ingegnere/perito industriale.</p>`;
+    default: return `<p class="hint">${v.cat==="FIL"||v.cat==="SIL" ? "Voce prioritaria ai fini del P1." : ""} Documentazione: 3 preventivi confrontabili via portale SIAN (DOC12), salvo voci a costo standard.</p>`;
+  }
+}
+
+function renderVoci(){
+  const box = document.getElementById("vociBox");
+  box.innerHTML = vociState.map((v,i)=>`
+  <div class="voce">
+    <div class="vhead">
+      <label class="f" style="flex:2">Descrizione voce
+        <input type="text" value="${esc(v.desc)}" placeholder="es. Trattrice cingolata, impianto mandorleto…" oninput="updVoce(${i},'desc',this.value)">
+      </label>
+      <label class="f">Categoria
+        <select onchange="cambiaCat(${i},this.value)">
+          ${Object.entries(CATEGORIE).map(([k,l])=>`<option value="${k}" ${v.cat===k?"selected":""}>${l}</option>`).join("")}
+        </select>
+      </label>
+      <label class="f">Importo €
+        <input type="number" min="0" step="0.01" value="${v.importo||""}" oninput="updVoce(${i},'importo',parseFloat(this.value)||0)">
+      </label>
+      <button type="button" class="danger" onclick="delVoce(${i})">✕ Rimuovi</button>
+    </div>
+    <div class="vspec">${specHTML(v,i)}</div>
+  </div>`).join("");
+  aggiornaTotaleVoci();
+}
+function aggiornaTotaleVoci(){
+  const t = vociState.reduce((a,v)=>a+(v.importo||0),0);
+  document.getElementById("vociTot").textContent = vociState.length ? "Totale voci inserite: "+EUR(t) : "";
+}
+
+// ---- analisi tecnica di una voce (FASE 4) ----
+function analizzaVoce(v){
+  const r = { amm:true, prio:false, note:[], docs:[] };
+  switch(v.cat){
+    case "M": case "M40": {
+      if (v.cat==="M40"){
+        const n = v.car40.filter(Boolean).length;
+        if (n>=2){ r.prio=true; r.note.push("Requisito 4.0 verificato: "+n+"/6 caratteristiche (minimo 2) → prioritaria"); }
+        else r.note.push("Requisito 4.0 NON verificato ("+n+"/6 caratteristiche, minimo 2) → non prioritaria");
+      }
+      if (v.prezzario) r.note.push("In Prezzario Informatore Agrario: 1 preventivo estratto da S.D.P.M. con PDF generato dal portale");
+      else { r.docs.push("DOC12"); r.note.push("Fuori prezzario: obbligatori 3 preventivi confrontabili, indipendenti e dettagliati via portale SIAN (DOC12)"); }
+      if (v.unico){ r.docs.push("DOC13"); r.note.push("Bene unico/innovativo: dichiarazione di unicità del fornitore + relazione del tecnico (DOC13)"); }
+      break;
+    }
+    case "ARB": {
+      if (v.rinfittimento){ r.amm=false; r.note.push("Rinfittimenti e ripristino fallanze NON ammessi → voce esclusa dalla spesa ammissibile"); break; }
+      if (v.giaFinanziata) r.note.push("Specie già finanziata in precedenti Avvisi SRD01 → non prioritaria");
+      else r.prio=true;
+      if (!v.passaporto) r.note.push("⚠ Necessario passaporto fitosanitario del materiale vivaistico");
+      r.note.push("Spesa a Costi Standard — Metodologia UCS Impianti Arborei (Rete Rurale Nazionale)");
+      r.docs.push("DOC06");
+      break;
+    }
+    case "ED": {
+      if (!v.zonaAgricola){ r.amm=false; r.note.push("Ubicazione fuori zona agricola → voce NON ammissibile"); break; }
+      if (!v.destProduttiva){ r.amm=false; r.note.push("Destinazione d'uso non produttiva → voce NON ammissibile"); break; }
+      r.docs.push("DOC08","DOC09","DOC10");
+      r.note.push("Computo metrico (DOC09) redatto esclusivamente sul Prezzario Regionale OOPP Puglia luglio 2025");
+      break;
+    }
+    case "IRR": {
+      const eff = parseFloat(v.efficienza)||0;
+      const soglia = v.reflue ? 80 : 85;
+      if (eff >= soglia){ r.prio=true; r.note.push("Efficienza "+eff+"% ≥ "+soglia+"%"+(v.reflue?" (acque reflue)":"")+" → prioritaria"); }
+      else r.note.push("Efficienza "+eff+"% < "+soglia+"%"+(v.reflue?" (acque reflue)":"")+" → non prioritaria");
+      r.docs.push("DOC04","DOC12");
+      if (!v.autorizzazione) r.note.push("⚠ Acquisire autorizzazione all'emungimento / prelievo consortile / uso reflue (DOC04)");
+      if (!v.contatori) r.note.push("⚠ Obbligo di installazione di misuratori di consumo idrico");
+      break;
+    }
+    case "INV": {
+      const cap = parseFloat(v.capacita)||0;
+      if (cap>0 && cap<250000){ r.prio=true; r.note.push("Capacità "+cap.toLocaleString("it-IT")+" mc < 250.000 mc → prioritaria"); }
+      else if (cap>=250000) r.note.push("Capacità ≥ 250.000 mc → non prioritaria");
+      else r.note.push("Capacità non indicata → priorità non valutabile");
+      r.docs.push("DOC12");
+      break;
+    }
+    case "REN": {
+      if (v.autoconsumo){ r.prio=true; r.note.push("Rinnovabili per autoconsumo → prioritaria"); }
+      else r.note.push("Senza autoconsumo → non prioritaria");
+      r.docs.push("DOC14","DOC12");
+      break;
+    }
+    case "FIL": r.prio=true; r.note.push("Filiera corta / vendita diretta → prioritaria"); r.docs.push("DOC12"); break;
+    case "SIL": r.prio=true; r.note.push("Stoccaggio/conservazione (silos, celle frigo) → prioritaria"); r.docs.push("DOC12"); break;
+    default: r.docs.push("DOC12");
+  }
+  return r;
+}
 
 function anniTra(da, a){
   if(!da || !a) return null;
@@ -284,16 +467,16 @@ function anniTra(da, a){
   return anni;
 }
 
-function calcola(){
+function calcola(vociParam){
+  const voci = Array.isArray(vociParam) ? vociParam : vociState;
   const dds = val("dds") || new Date().toISOString().slice(0,10);
   const inp = {
     ditta: val("ditta"), cuaa: val("cuaa").toUpperCase(), comune: val("comune"),
-    soggettivita: val("soggettivita"), soloSilvAcqua: chk("soloSilvAcqua"),
+    soggettivita: val("soggettivita"), soloSilvAcqua: chk("soloSilvAcqua"), affitto: chk("affitto"),
     nascita: val("nascita"), insediamento: val("insediamento"), genere: val("genere"), dds,
     psTotale: num("psTotale"), psOlio: num("psOlio"), ote: num("ote"),
-    costoTot: num("costoTot"), giaAmmesso: num("giaAmmesso") ?? 0,
+    costoTotManuale: num("costoTot"), giaAmmesso: num("giaAmmesso") ?? 0,
     soloOlivicolo: chk("soloOlivicolo"),
-    p1: { irr:num("p1_irr")??0, inv:num("p1_inv")??0, arb:num("p1_arb")??0, fil:num("p1_fil")??0, sil:num("p1_sil")??0, rin:num("p1_rin")??0, m40:num("p1_m40")??0 },
     comparto: val("comparto"),
     p3: { sal:num("p3_sal")??0, zvn:num("p3_zvn")??0, ard:num("p3_ard")??0, xyl:num("p3_xyl")??0, n2k:num("p3_n2k")??0, svv:num("p3_svv")??0 },
     satSvantaggiata: num("satSvantaggiata")??0,
@@ -301,22 +484,33 @@ function calcola(){
     p6: parseInt(val("p6_sra")), p8cant: parseInt(val("p8_cant")), p8fin: parseInt(val("p8_fin"))
   };
 
+  // ================= FASE 4 — ANALISI TECNICA VOCI =================
+  const analisi = voci.map(v => ({ voce:v, ...analizzaVoce(v) }));
+  const ammesse = analisi.filter(a=>a.amm);
+  const escluse = analisi.filter(a=>!a.amm);
+  const spesaAmmessa = ammesse.reduce((s,a)=>s+(a.voce.importo||0),0);
+  const spesaPrioritaria = ammesse.filter(a=>a.prio).reduce((s,a)=>s+(a.voce.importo||0),0);
+  const spesaEsclusa = escluse.reduce((s,a)=>s+(a.voce.importo||0),0);
+
+  // costo totale: da voci se presenti, altrimenti campo manuale
+  const daVoci = voci.length>0 && spesaAmmessa>0;
+  const costoTot = daVoci ? spesaAmmessa : inp.costoTotManuale;
+  if (daVoci) document.getElementById("costoTot").value = spesaAmmessa.toFixed(2);
+
   // ---- Qualifica Giovane Agricoltore ----
-  const eta = anniTra(inp.nascita, dds);                 // anni compiuti alla DdS
-  const anniIns = anniTra(inp.insediamento, dds);        // anni dall'insediamento
-  const giovane = (eta!=null && anniIns!=null) ? (eta < 41 && anniIns < 5) : null; // 41 non compiuti, insediato < 5 anni
+  const eta = anniTra(inp.nascita, dds);
+  const anniIns = anniTra(inp.insediamento, dds);
+  const giovane = (eta!=null && anniIns!=null) ? (eta < 41 && anniIns < 5) : null;
   const donna = inp.genere === "F";
 
   // ================= FASE 1 — KILLER CRITERIA =================
   const kc = [];
-  // CR01
   let cr01ok, cr01note;
   if (inp.soggettivita === "ALTRO") { cr01ok=false; cr01note="Soggetto diverso da Imprenditore Agricolo / OP / Cooperativa / Rete di Imprese."; }
   else if (inp.soloSilvAcqua) { cr01ok=false; cr01note="Attività esclusiva di silvicoltura/acquacoltura: esclusa."; }
   else { cr01ok=true; cr01note="Soggetto ammissibile ("+({IA:"Imprenditore Agricolo art. 2135",OP:"Organizzazione di Produttori",COOP:"Cooperativa agricola",RETE:"Rete di Imprese"})[inp.soggettivita]+")."; }
   kc.push({cod:"CR01", nome:"Soggettività", ok:cr01ok, nota:cr01note});
 
-  // CR02
   let cr02ok=null, cr02note;
   if (inp.psTotale==null && !(inp.soloOlivicolo && inp.psOlio!=null)) { cr02note="DATO MANCANTE: Produzione Standard totale."; }
   else if (inp.psTotale!=null && inp.psTotale >= 15000) { cr02ok=true; cr02note="PS totale "+EUR(inp.psTotale)+" ≥ € 15.000."; }
@@ -324,39 +518,36 @@ function calcola(){
   else { cr02ok=false; cr02note="PS totale "+EUR(inp.psTotale)+" < € 15.000" + (inp.soloOlivicolo ? " e PS olivicola "+EUR(inp.psOlio)+" < € 5.000." : " (deroga olivicola non applicabile)."); }
   kc.push({cod:"CR02", nome:"Dimensione economica (PS)", ok:cr02ok, nota:cr02note});
 
-  // CR27
   let cr27ok=null, cr27note;
-  if (inp.costoTot==null) cr27note="DATO MANCANTE: costo totale investimento.";
-  else { cr27ok = inp.costoTot >= 30000; cr27note = "Spesa ammissibile "+EUR(inp.costoTot)+(cr27ok?" ≥":" <")+" € 30.000."; }
+  if (costoTot==null) cr27note="DATO MANCANTE: costo totale investimento.";
+  else { cr27ok = costoTot >= 30000; cr27note = "Spesa ammissibile "+EUR(costoTot)+(cr27ok?" ≥":" <")+" € 30.000."+(spesaEsclusa>0?" (Escluse voci non ammissibili per "+EUR(spesaEsclusa)+".)":""); }
   kc.push({cod:"CR27", nome:"Soglia minima di spesa", ok:cr27ok, nota:cr27note});
 
-  // CR28
   let cr28ok=null, cr28note;
-  if (inp.costoTot==null) cr28note="DATO MANCANTE: costo totale investimento.";
-  else { const cum = inp.costoTot + inp.giaAmmesso; cr28ok = cum <= 3000000; cr28note = "Cumulato 2023-2027: "+EUR(cum)+(cr28ok?" ≤":" >")+" € 3.000.000 (di cui già ammessi "+EUR(inp.giaAmmesso)+")."; }
+  if (costoTot==null) cr28note="DATO MANCANTE: costo totale investimento.";
+  else { const cum = costoTot + inp.giaAmmesso; cr28ok = cum <= 3000000; cr28note = "Cumulato 2023-2027: "+EUR(cum)+(cr28ok?" ≤":" >")+" € 3.000.000 (di cui già ammessi "+EUR(inp.giaAmmesso)+")."; }
   kc.push({cod:"CR28", nome:"Massimale di spesa", ok:cr28ok, nota:cr28note});
 
   const datiMancantiKC = kc.some(k => k.ok===null);
-  const ammissibile = kc.every(k => k.ok===true);
   const bocciato = kc.some(k => k.ok===false);
 
   // ================= FASE 2 — ALIQUOTA =================
-  let aliquota=null, aliquotaNota;
+  let aliquota, aliquotaNota;
   if (giovane === true) { aliquota=80; aliquotaNota="Giovane Agricoltore (età "+eta+" anni alla DdS, insediato da "+anniIns+" anni)."; }
   else if (inp.satSvantaggiata >= 51) { aliquota=65; aliquotaNota="≥ 51% SAT in zone con svantaggi naturali (escluse montane): "+PCT(inp.satSvantaggiata)+"."; }
   else if (giovane === null && (inp.nascita==="" || inp.insediamento==="")) { aliquota=60; aliquotaNota="Aliquota base 60% — DATO MANCANTE per verifica Giovane Agricoltore (data nascita/insediamento)."; }
   else { aliquota=60; aliquotaNota="Aliquota base."; }
-  const contributo = (inp.costoTot!=null && aliquota!=null) ? inp.costoTot * aliquota/100 : null;
+  const contributo = (costoTot!=null) ? costoTot * aliquota/100 : null;
 
   // ================= FASE 3 — PUNTEGGI =================
   const pts = [];
 
-  // ---- P1 ----
-  const p1costo = Object.values(inp.p1).reduce((a,b)=>a+b,0);
+  // ---- P1 (da analisi tecnica delle voci) ----
   let p1=0, p1note, p1inc=null;
-  if (inp.costoTot==null || inp.costoTot===0) { p1note="DATO MANCANTE: costo totale progetto — calcolo non eseguito."; p1=null; }
+  if (costoTot==null || costoTot===0) { p1=null; p1note="DATO MANCANTE: costo totale progetto — calcolo non eseguito."; }
+  else if (voci.length===0) { p1=0; p1note="Nessuna voce di spesa dettagliata inserita: incidenza investimenti prioritari non determinabile → 0 pt prudenziale."; }
   else {
-    p1inc = Math.min(100, p1costo / inp.costoTot * 100);
+    p1inc = Math.min(100, spesaPrioritaria / costoTot * 100);
     if (p1inc >= 30 && p1inc <= 40) p1=2;
     else if (p1inc > 40 && p1inc <= 50) p1=4;
     else if (p1inc > 50 && p1inc <= 60) p1=6;
@@ -365,7 +556,7 @@ function calcola(){
     else if (p1inc > 80 && p1inc <= 90) p1=15;
     else if (p1inc > 90) p1=17;
     else p1=0;
-    p1note="Investimenti prioritari "+EUR(p1costo)+" su "+EUR(inp.costoTot)+" → incidenza "+PCT(p1inc)+".";
+    p1note="Voci prioritarie validate "+EUR(spesaPrioritaria)+" su spesa ammissibile "+EUR(costoTot)+" → incidenza "+PCT(p1inc)+".";
   }
   pts.push({cod:"P1", nome:"Finalità specifiche dell'intervento", max:17, pt:p1, nota:p1note});
 
@@ -403,11 +594,11 @@ function calcola(){
 
   // ---- P5 ----
   let p5=0, p5note;
-  if (inp.ote==null || inp.ote===0 || inp.costoTot==null) { p5=null; p5note="DATO MANCANTE: valore OTE"+(inp.costoTot==null?" e costo investimento":"")+" — calcolo non eseguito."; }
+  if (inp.ote==null || inp.ote===0 || costoTot==null) { p5=null; p5note="DATO MANCANTE: valore OTE"+(costoTot==null?" e costo investimento":"")+" — calcolo non eseguito."; }
   else {
-    const r = inp.costoTot / inp.ote;
+    const r = costoTot / inp.ote;
     if (r <= 1.00) p5=10; else if (r <= 2.00) p5=8; else if (r <= 3.00) p5=6; else if (r <= 5.00) p5=4; else if (r <= 7.00) p5=2; else p5=0;
-    p5note="Rapporto investimento/OTE = "+EUR(inp.costoTot)+" / "+EUR(inp.ote)+" = "+r.toFixed(2)+".";
+    p5note="Rapporto investimento/OTE = "+EUR(costoTot)+" / "+EUR(inp.ote)+" = "+r.toFixed(2)+".";
   }
   pts.push({cod:"P5", nome:"Dimensione economica aziendale", max:10, pt:p5, nota:p5note});
 
@@ -418,8 +609,7 @@ function calcola(){
   // ---- P8 ----
   let p8fin = inp.p8fin;
   let p8finNote = p8fin===6 ? "Mutuo dedicato o spesa ≤ € 50.000 (6 pt)" : p8fin===4 ? "Giacenza media ≥ 50% spesa (4 pt)" : "Nessuna evidenza finanziaria (0 pt)";
-  // auto-bonus: se spesa ≤ 50k la sostenibilità vale comunque 6
-  if (inp.costoTot!=null && inp.costoTot <= 50000 && p8fin < 6) { p8fin = 6; p8finNote = "Spesa "+EUR(inp.costoTot)+" ≤ € 50.000 → sostenibilità automatica (6 pt)"; }
+  if (costoTot!=null && costoTot <= 50000 && p8fin < 6) { p8fin = 6; p8finNote = "Spesa "+EUR(costoTot)+" ≤ € 50.000 → sostenibilità automatica (6 pt)"; }
   const p8 = inp.p8cant + p8fin;
   pts.push({cod:"P8", nome:"Qualità del progetto", max:10, pt:p8, nota:"Cantierabilità: "+(inp.p8cant===4?"titoli acquisiti (4 pt)":inp.p8cant===2?"istanza presentata (2 pt)":"non cantierabile (0 pt)")+"; "+p8finNote+"."});
 
@@ -434,28 +624,45 @@ function calcola(){
   else if (!sogliaOk) { esito="NON IDONEO"; esitoCls="ko"; esitoMsg="Requisiti minimi soddisfatti ma punteggio "+totale+" pt < soglia minima 30 pt."; }
   else { esito="IDONEO"; esitoCls="ok"; esitoMsg="Requisiti minimi soddisfatti e punteggio sopra la soglia di 30 pt."; }
 
-  // ================= CHECK-LIST DOC =================
-  const docs = [
-    ["DOC01","Documento di identità del titolare/legale rappresentante", true],
-    ["DOC02","Fascicolo aziendale AGEA validato e aggiornato", true],
-    ["DOC03","Relazione tecnica asseverata del progetto", true],
-    ["DOC04","Preventivi di spesa confrontabili (n. 3 per voce)", true],
-    ["DOC05","Titoli di possesso/disponibilità degli immobili oggetto di intervento", true],
-    ["DOC06","Elaborati grafici, computo metrico e layout (opere strutturali)", inp.p1.sil>0 || inp.p1.inv>0],
-    ["DOC07","Titoli abilitativi edilizi acquisiti o istanza presentata", inp.p8cant>0],
-    ["DOC08","Attestazione qualifica CD/IAP", inp.p4.cdiap],
-    ["DOC09","Documentazione primo insediamento Giovane Agricoltore", giovane===true],
-    ["DOC10","Certificato adesione DOP/IGP/Prodotti di Puglia", inp.p4.dop],
-    ["DOC11","Certificato di operatore biologico (notifica SINAB)", inp.p4.bio],
-    ["DOC12","Atto costitutivo/statuto Coop-OP o accordo di filiera sottoscritto", inp.p4.coop || ["OP","COOP","RETE"].includes(inp.soggettivita)],
-    ["DOC13","Certificazione iscrizione Rete Lavoro Agricolo di Qualità (INPS)", inp.p4.rlaq],
-    ["DOC14","Dichiarazione istituto di credito (mutuo) o attestazione giacenza media", inp.p8fin>0],
-    ["DOC15","Concessione/autorizzazione idrica e progetto irriguo (efficienza ≥ 85%)", inp.p1.irr>0 || inp.p1.inv>0],
-    ["DOC16","Perizia di interconnessione / requisiti 4.0 dei macchinari", inp.p1.m40>0],
-    ["DOC17","Domanda di partecipazione interventi SRA (integrazione)", inp.p6>0],
-  ].filter(d=>d[2]);
+  // ================= CHECK-LIST DOC (Tabella 9) =================
+  const DOCDESCR = {
+    DOC01:"Documento di identità del titolare/legale rappresentante",
+    DOC02:"Autorizzazione del proprietario all'investimento, con impegno per 5 anni successivi al saldo (immobili in affitto/comodato)",
+    DOC04:"Autorizzazione all'emungimento (pozzo), prelievo consortile o uso acque reflue",
+    DOC05:"Relazione Tecnica di progetto",
+    DOC06:"Elaborati grafici con ubicazione puntuale degli interventi",
+    DOC07:"Quadro Economico riepilogativo della spesa",
+    DOC08:"Relazione asseverata su cantierabilità e conformità urbanistica",
+    DOC09:"Computo Metrico Estimativo redatto esclusivamente sul Prezzario Regionale Opere Pubbliche Puglia luglio 2025",
+    DOC10:"Titoli abilitativi edilizi (Permesso di costruire, SCIA) o prova della richiesta",
+    DOC11:"Proposta professionale del tecnico incaricato",
+    DOC12:"N. 3 preventivi confrontabili, indipendenti e dettagliati, acquisiti tramite portale SIAN",
+    DOC13:"Dichiarazione di unicità del fornitore e relazione del tecnico (bene unico/innovativo)",
+    DOC14:"Relazione specifica impianto da fonti rinnovabili (ingegnere/perito industriale)",
+    DOC20:"DSAN impegni ed obblighi del beneficiario",
+    DOC22:"Documentazione antimafia"
+  };
+  const docSet = new Set(["DOC01","DOC05","DOC07","DOC11","DOC20","DOC22"]);
+  if (inp.affitto) docSet.add("DOC02");
+  analisi.filter(a=>a.amm).forEach(a => a.docs.forEach(d => docSet.add(d)));
+  const docList = [...docSet].sort().map(c=>({cod:c, desc:DOCDESCR[c]}));
+  const richiedeSIAN = docSet.has("DOC12");
 
-  ultimoEsito = { input:inp, eta, anniIns, giovane, donna, killerCriteria:kc, esito, aliquota, contributo, punteggi:pts, totale, datiMancanti:datiMancantiPts, documenti:docs.map(d=>({cod:d[0],desc:d[1]})) };
+  // documentazione di profilo (a supporto del punteggio, senza codice Tabella 9)
+  const docProfilo = [];
+  if (inp.p4.cdiap) docProfilo.push("Attestazione qualifica CD/IAP");
+  if (giovane===true) docProfilo.push("Documentazione primo insediamento Giovane Agricoltore");
+  if (inp.p4.dop) docProfilo.push("Certificato adesione DOP/IGP/Prodotti di Puglia");
+  if (inp.p4.bio) docProfilo.push("Certificato di operatore biologico (notifica SINAB)");
+  if (inp.p4.coop) docProfilo.push("Atto costitutivo/statuto Coop-OP o accordo di filiera sottoscritto");
+  if (inp.p4.rlaq) docProfilo.push("Certificazione iscrizione Rete Lavoro Agricolo di Qualità (INPS)");
+  if (inp.p8fin>0) docProfilo.push("Dichiarazione istituto di credito (mutuo) o attestazione giacenza media");
+  if (inp.p6>0) docProfilo.push("Domanda di partecipazione interventi SRA");
+
+  ultimoEsito = { input:inp, voci, analisiVoci:analisi.map(a=>({desc:a.voce.desc, cat:a.voce.cat, importo:a.voce.importo, ammissibile:a.amm, prioritaria:a.prio, note:a.note, docs:a.docs})),
+    spesaAmmessa:costoTot, spesaPrioritaria, spesaEsclusa, eta, anniIns, giovane, donna,
+    killerCriteria:kc, esito, aliquota, contributo, punteggi:pts, totale, datiMancanti:datiMancantiPts,
+    documenti:docList, documentiProfilo:docProfilo, obbligoSIAN:richiedeSIAN };
 
   // ================= RENDER =================
   const oggi = new Date().toLocaleDateString("it-IT",{day:"2-digit",month:"long",year:"numeric"});
@@ -472,8 +679,8 @@ function calcola(){
   </div>
 
   <table class="r">
-    <tr><th style="width:25%">Ditta</th><td>${inp.ditta||"—"}</td><th style="width:15%">CUAA</th><td>${inp.cuaa||"—"}</td></tr>
-    <tr><th>Soggettività</th><td>${({IA:"Imprenditore Agricolo (art. 2135 c.c.)",OP:"Organizzazione di Produttori",COOP:"Cooperativa agricola",RETE:"Rete di Imprese",ALTRO:"Altro"})[inp.soggettivita]}</td><th>Sede</th><td>${inp.comune||"—"}</td></tr>
+    <tr><th style="width:25%">Ditta</th><td>${esc(inp.ditta)||"—"}</td><th style="width:15%">CUAA</th><td>${esc(inp.cuaa)||"—"}</td></tr>
+    <tr><th>Soggettività</th><td>${({IA:"Imprenditore Agricolo (art. 2135 c.c.)",OP:"Organizzazione di Produttori",COOP:"Cooperativa agricola",RETE:"Rete di Imprese",ALTRO:"Altro"})[inp.soggettivita]}</td><th>Sede</th><td>${esc(inp.comune)||"—"}</td></tr>
     <tr><th>Titolare</th><td>${inp.genere==="F"?"Donna":inp.genere==="M"?"Uomo":"Società"}${eta!=null?", "+eta+" anni alla DdS":""}</td>
         <th>Giovane Agricoltore</th><td>${giovane===true?"<b>SÌ</b> (insediato da "+anniIns+" anni)":giovane===false?"No":"<span class='miss'>DATO MANCANTE</span>"}</td></tr>
   </table>
@@ -489,16 +696,34 @@ function calcola(){
       <td>${k.nota}</td></tr>`).join("")}
   </table>`;
 
+  // ---- FASE 4: analisi tecnica voci ----
+  if (voci.length>0) {
+    h += `
+  <h3 class="r">Fase 4 — Analisi tecnica dell'investimento</h3>
+  <table class="r">
+    <tr><th style="width:22%">Voce</th><th style="width:18%">Categoria</th><th class="num" style="width:11%">Importo</th><th style="width:12%">Esito</th><th>Validazione e documentazione</th></tr>
+    ${analisi.map(a=>{
+      const cls = !a.amm ? "fail-row" : a.prio ? "prio-row" : "pass-row";
+      const lbl = !a.amm ? "✘ NON AMMISS." : a.prio ? "★ PRIORITARIA" : "✔ AMMISSIBILE";
+      return `<tr><td>${esc(a.voce.desc)||"—"}${a.voce.cat==="M"||a.voce.cat==="M40" ? (a.voce.marca||a.voce.modello?`<br><small>${esc(a.voce.marca)} ${esc(a.voce.modello)}</small>`:"") : ""}${a.voce.cat==="ARB"&&a.voce.specie?`<br><small>${esc(a.voce.specie)}${a.voce.superficie?", "+esc(a.voce.superficie)+" ha":""}${a.voce.sesto?", sesto "+esc(a.voce.sesto):""}</small>`:""}</td>
+      <td>${CATEGORIE[a.voce.cat]}</td><td class="num">${EUR(a.voce.importo||0)}</td>
+      <td class="${cls}">${lbl}</td><td>${a.note.map(esc).join("<br>")}${a.docs.length?`<br><small>Documenti: <b>${a.docs.join(", ")}</b></small>`:""}</td></tr>`;
+    }).join("")}
+    <tr class="tot"><td colspan="2">Spesa ammissibile ${spesaEsclusa>0?`(escluse voci non ammissibili: ${EUR(spesaEsclusa)})`:""}</td>
+      <td class="num">${EUR(spesaAmmessa)}</td><td colspan="2">di cui prioritaria ai fini P1: ${EUR(spesaPrioritaria)} (${spesaAmmessa>0?PCT(spesaPrioritaria/spesaAmmessa*100):"—"})</td></tr>
+  </table>`;
+  }
+
   if (!bocciato) {
     h += `
   <h3 class="r">Fase 2 — Quadro economico e aliquota di sostegno</h3>
   <table class="r">
     <tr><th>Spesa totale ammissibile</th><th>Aliquota applicabile</th><th>Contributo concedibile</th><th>Quota privata</th></tr>
     <tr>
-      <td class="num">${EUR(inp.costoTot)}</td>
+      <td class="num">${EUR(costoTot)}</td>
       <td class="num"><b>${aliquota}%</b></td>
       <td class="num"><b>${EUR(contributo)}</b></td>
-      <td class="num">${contributo!=null?EUR(inp.costoTot-contributo):"—"}</td>
+      <td class="num">${contributo!=null?EUR(costoTot-contributo):"—"}</td>
     </tr>
   </table>
   <p class="note">Motivazione aliquota: ${aliquotaNota}</p>
@@ -514,16 +739,28 @@ function calcola(){
   }
 
   h += `
-  <h3 class="r">Check-list documentale (in base al profilo)</h3>
+  <h3 class="r">Check-list documentale (Tabella 9, in base al profilo)</h3>
   <ul class="docs">
-    ${docs.map(d=>`<li><b>${d[0]}</b> ${d[1]}</li>`).join("")}
-  </ul>
+    ${docList.map(d=>`<li><b>${d.cod}</b> ${d.desc}</li>`).join("")}
+  </ul>`;
 
+  if (richiedeSIAN) h += `
+  <div class="sian-warn"><b>⚠ OBBLIGO SIAN</b> — Tutti i preventivi (DOC12) devono essere gestiti obbligatoriamente tramite la funzione
+  dematerializzata del portale <b>SIAN</b> prima del rilascio della domanda, <b>pena l'inammissibilità della spesa</b>.</div>`;
+
+  if (docProfilo.length) h += `
+  <h3 class="r">Documentazione a supporto del punteggio</h3>
+  <ul class="docs">
+    ${docProfilo.map(d=>`<li><b>—</b> ${d}</li>`).join("")}
+  </ul>`;
+
+  h += `
   <div class="disclaimer">
     Il presente studio di prefattibilità ha valore indicativo ed è elaborato sulla base dei parametri dichiarati dal richiedente
     (fascicolo aziendale e preventivo di progetto). L'esito definitivo di ammissibilità e l'attribuzione del punteggio restano
     di competenza dell'istruttoria dell'Autorità di Gestione. I punteggi di localizzazione (P3) sono attribuiti con criterio di
-    prevalenza (quota ≥ 50% dell'investimento/SAT nella zona).
+    prevalenza (quota ≥ 50% dell'investimento/SAT nella zona). Gli impianti arborei sono valorizzati a Costi Standard
+    (Metodologia UCS Impianti Arborei — Rete Rurale Nazionale); le opere edili sul Prezzario Regionale OOPP Puglia luglio 2025.
   </div>
 
   <div class="firma">
@@ -550,6 +787,7 @@ function copiaJSON(){
 
 // default DdS = oggi
 document.getElementById("dds").value = new Date().toISOString().slice(0,10);
+renderVoci();
 </script>
 </body>
 </html>
