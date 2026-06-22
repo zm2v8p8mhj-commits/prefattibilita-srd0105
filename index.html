@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prefattibilità SRD01.05 — Investimenti produttivi agricoli</title>
+<title>Scheda preliminare SRD01.05 — Investimenti produttivi agricoli</title>
 <style>
   :root{
     --green:#1b5e20; --green-light:#2e7d32; --green-pale:#e8f5e9;
@@ -27,6 +27,12 @@
   .chk{display:flex;align-items:flex-start;gap:8px;font-size:14px;padding:6px 4px}
   .chk input{margin-top:3px;width:16px;height:16px;accent-color:var(--green)}
   .hint{font-size:12px;color:var(--grey);margin:2px 0 0}
+  .import-box{border:1px dashed var(--green-light);border-radius:8px;background:#fbfffb;padding:12px 14px;margin-top:8px}
+  .import-box input[type=file]{width:100%;padding:8px 0}
+  .import-status{font-size:12.5px;margin-top:8px;color:var(--grey);white-space:pre-line}
+  .import-status.ok{color:var(--green)}
+  .import-status.warn{color:var(--amber)}
+  .import-status.err{color:var(--red)}
   table.inp{width:100%;border-collapse:collapse;font-size:14px}
   table.inp th,table.inp td{border:1px solid var(--line);padding:6px 8px;text-align:left}
   table.inp th{background:var(--green-pale);font-size:12.5px}
@@ -77,8 +83,11 @@
   ul.docs li b{color:var(--green);display:inline-block;min-width:62px}
   .sian-warn{background:#fff3e0;border:2px solid var(--amber);border-radius:8px;padding:12px 16px;font-size:13.5px;margin:12px 0;color:#5d3200}
   .sian-warn b{color:var(--amber)}
-  .disclaimer{margin-top:30px;font-size:11.5px;color:var(--grey);border-top:1px solid var(--line);padding-top:12px}
+  .declarations{margin-top:22px;border:1px solid var(--line);border-radius:8px;padding:12px 16px;background:#fafafa;font-size:12.5px}
+  .declarations p{margin:6px 0}
+  .disclaimer{margin-top:22px;font-size:11.5px;color:var(--grey);border-top:1px solid var(--line);padding-top:12px}
   .firma{margin-top:34px;display:flex;justify-content:flex-end}
+  .firma.dual{justify-content:space-between;gap:40px}
   .firma .box{text-align:center;font-size:13px}
   .firma .box .nome{font-weight:700;margin-top:34px;border-top:1px solid var(--ink);padding-top:6px}
 
@@ -96,8 +105,8 @@
 <body>
 
 <header class="appbar">
-  <h1>Studio di Prefattibilità — SRD01.05</h1>
-  <p>Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027 · Verifica ammissibilità, analisi tecnica investimenti e punteggio</p>
+  <h1>Scheda preliminare di prefattibilità — SRD01.05</h1>
+  <p>Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027 · Pre-studio orientativo su dati dichiarati dal richiedente</p>
 </header>
 
 <main>
@@ -127,7 +136,8 @@
     </label>
   </div>
   <div class="chk"><input type="checkbox" id="soloSilvAcqua"><span>L'azienda pratica <b>esclusivamente</b> silvicoltura e/o acquacoltura</span></div>
-  <div class="chk"><input type="checkbox" id="affitto"><span>Gli investimenti ricadono (anche in parte) su terreni o fabbricati <b>in affitto/comodato</b> (richiede DOC02: autorizzazione del proprietario per 5 anni post-saldo)</span></div>
+  <div class="chk"><input type="checkbox" id="affitto"><span>Gli investimenti ricadono (anche in parte) su terreni o fabbricati <b>in affitto o altro titolo idoneo</b> diverso dalla proprietà (richiede DOC02; il comodato d'uso ordinario non è titolo ammesso dal bando)</span></div>
+  <div class="chk"><input type="checkbox" id="comodato"><span>Presenza di terreni o fabbricati in <b>comodato d'uso ordinario</b> (criticità CR31: titolo non ammesso, salvo casi specifici previsti dal bando)</span></div>
   <div class="grid" style="margin-top:8px">
     <label class="f">Data di nascita titolare
       <input type="date" id="nascita">
@@ -146,6 +156,18 @@
     <label class="f">Data presentazione DdS (riferimento)
       <input type="date" id="dds">
     </label>
+  </div>
+</fieldset>
+
+<!-- ====== IMPORT FASCICOLO ====== -->
+<fieldset>
+  <legend>1 bis · Caricamento fascicolo aziendale AGEA</legend>
+  <div class="import-box">
+    <label class="f">Fascicolo aziendale in PDF
+      <input type="file" id="fascicoloPdf" accept="application/pdf" onchange="importaFascicolo(this.files[0])">
+      <small>Carica il fascicolo per precompilare i dati disponibili. Tutto resta nel browser; se il PDF non viene caricato puoi proseguire a mano.</small>
+    </label>
+    <div id="importStatus" class="import-status">Nessun fascicolo caricato.</div>
   </div>
 </fieldset>
 
@@ -203,15 +225,17 @@
 <!-- ====== P3 LOCALIZZAZIONE ====== -->
 <fieldset>
   <legend>5 · Localizzazione (P3 — max 12 pt)</legend>
-  <p class="hint">Indica la quota (%) di investimento/SAT ricadente in ciascuna zona. Il punteggio è attribuito con quota prevalente (≥ 50%).</p>
+  <p class="hint">Indica la quota (%) del valore dell'investimento ricadente in ciascuna zona. Il punteggio è calcolato in modo ponderato rispetto al valore dell'investimento, come da Avviso SRD01.05.</p>
   <table class="inp">
-    <tr><th>Zona</th><th>Punti</th><th>% investimento/SAT</th></tr>
+    <tr><th>Zona</th><th>Punti</th><th>% valore investimento</th></tr>
     <tr><td>Fonte idrica in aree non a rischio salinità</td><td>2</td><td><input type="number" id="p3_sal" min="0" max="100" value="0"></td></tr>
     <tr><td>Zone Vulnerabili da Nitrati (ZVN)</td><td>2</td><td><input type="number" id="p3_zvn" min="0" max="100" value="0"></td></tr>
     <tr><td>Area D — aree rurali con problemi di sviluppo</td><td>2</td><td><input type="number" id="p3_ard" min="0" max="100" value="0"></td></tr>
     <tr><td>Zone delimitate Xylella fastidiosa</td><td>2</td><td><input type="number" id="p3_xyl" min="0" max="100" value="0"></td></tr>
-    <tr><td>Aree protette / Rete Natura 2000</td><td>1</td><td><input type="number" id="p3_n2k" min="0" max="100" value="0"></td></tr>
-    <tr><td>Zone svantaggiate o con vincolo paesaggistico</td><td>1</td><td><input type="number" id="p3_svv" min="0" max="100" value="0"></td></tr>
+    <tr><td>Aree protette</td><td>1</td><td><input type="number" id="p3_prot" min="0" max="100" value="0"></td></tr>
+    <tr><td>Rete Natura 2000</td><td>1</td><td><input type="number" id="p3_n2k" min="0" max="100" value="0"></td></tr>
+    <tr><td>Zone svantaggiate</td><td>1</td><td><input type="number" id="p3_svv" min="0" max="100" value="0"></td></tr>
+    <tr><td>Aree con vincolo paesaggistico</td><td>1</td><td><input type="number" id="p3_paes" min="0" max="100" value="0"></td></tr>
   </table>
   <div class="grid" style="margin-top:10px">
     <label class="f">% SAT in zone con svantaggi naturali (escluse montane)
@@ -472,13 +496,13 @@ function calcola(vociParam){
   const dds = val("dds") || new Date().toISOString().slice(0,10);
   const inp = {
     ditta: val("ditta"), cuaa: val("cuaa").toUpperCase(), comune: val("comune"),
-    soggettivita: val("soggettivita"), soloSilvAcqua: chk("soloSilvAcqua"), affitto: chk("affitto"),
+    soggettivita: val("soggettivita"), soloSilvAcqua: chk("soloSilvAcqua"), affitto: chk("affitto"), comodato: chk("comodato"),
     nascita: val("nascita"), insediamento: val("insediamento"), genere: val("genere"), dds,
     psTotale: num("psTotale"), psOlio: num("psOlio"), ote: num("ote"),
     costoTotManuale: num("costoTot"), giaAmmesso: num("giaAmmesso") ?? 0,
     soloOlivicolo: chk("soloOlivicolo"),
     comparto: val("comparto"),
-    p3: { sal:num("p3_sal")??0, zvn:num("p3_zvn")??0, ard:num("p3_ard")??0, xyl:num("p3_xyl")??0, n2k:num("p3_n2k")??0, svv:num("p3_svv")??0 },
+    p3: { sal:num("p3_sal")??0, zvn:num("p3_zvn")??0, ard:num("p3_ard")??0, xyl:num("p3_xyl")??0, prot:num("p3_prot")??0, n2k:num("p3_n2k")??0, svv:num("p3_svv")??0, paes:num("p3_paes")??0 },
     satSvantaggiata: num("satSvantaggiata")??0,
     p4: { cdiap:chk("p4_cdiap"), dop:chk("p4_dop"), bio:chk("p4_bio"), coop:chk("p4_coop"), rlaq:chk("p4_rlaq"), nuovo:chk("p4_nuovo") },
     p6: parseInt(val("p6_sra")), p8cant: parseInt(val("p8_cant")), p8fin: parseInt(val("p8_fin"))
@@ -528,6 +552,11 @@ function calcola(vociParam){
   else { const cum = costoTot + inp.giaAmmesso; cr28ok = cum <= 3000000; cr28note = "Cumulato 2023-2027: "+EUR(cum)+(cr28ok?" ≤":" >")+" € 3.000.000 (di cui già ammessi "+EUR(inp.giaAmmesso)+")."; }
   kc.push({cod:"CR28", nome:"Massimale di spesa", ok:cr28ok, nota:cr28note});
 
+  let cr31ok=true, cr31note="Titoli di possesso/disponibilità da verificare in fase di incarico.";
+  if (inp.comodato) { cr31ok=false; cr31note="Presenza dichiarata di comodato d'uso ordinario: il bando non lo ammette come titolo di disponibilità, salvo casi specifici ANBSC."; }
+  else if (inp.affitto) cr31note="Investimenti su beni non in proprietà: necessario DOC02 e titolo idoneo registrato per l'intero periodo di impegno.";
+  kc.push({cod:"CR31", nome:"Titolo di disponibilità immobili", ok:cr31ok, nota:cr31note});
+
   const datiMancantiKC = kc.some(k => k.ok===null);
   const bocciato = kc.some(k => k.ok===false);
 
@@ -571,13 +600,22 @@ function calcola(vociParam){
     ["Zone Vulnerabili da Nitrati (ZVN)", 2, inp.p3.zvn],
     ["Area D — problemi di sviluppo", 2, inp.p3.ard],
     ["Zone Xylella", 2, inp.p3.xyl],
-    ["Aree protette / Natura 2000", 1, inp.p3.n2k],
-    ["Zone svantaggiate / vincolo paesaggistico", 1, inp.p3.svv]
+    ["Aree protette", 1, inp.p3.prot],
+    ["Natura 2000", 1, inp.p3.n2k],
+    ["Zone svantaggiate", 1, inp.p3.svv],
+    ["Vincolo paesaggistico", 1, inp.p3.paes]
   ];
   let p3=0; const p3det=[];
-  for (const [n,p,q] of p3items){ if (q>=50){ p3+=p; p3det.push(n+" ("+p+" pt, quota "+PCT(q)+")"); } }
+  for (const [n,p,q] of p3items){
+    if (q>0){
+      const quota = Math.min(100, Math.max(0, q));
+      const parziale = p * quota / 100;
+      p3 += parziale;
+      p3det.push(n+" ("+p+" pt × "+PCT(quota)+" = "+parziale.toLocaleString("it-IT",{maximumFractionDigits:2})+" pt)");
+    }
+  }
   p3 = Math.min(12, p3);
-  pts.push({cod:"P3", nome:"Localizzazione dell'investimento", max:12, pt:p3, nota: p3det.length? "Zone con quota prevalente (≥50%): "+p3det.join("; ")+"." : "Nessuna zona con quota prevalente (≥50%)."});
+  pts.push({cod:"P3", nome:"Localizzazione dell'investimento", max:12, pt:p3, nota: p3det.length? "Punteggio ponderato per valore dell'investimento: "+p3det.join("; ")+"." : "Nessuna quota di investimento dichiarata in aree valorizzate P3."});
 
   // ---- P4 ----
   let p4=0; const p4det=[];
@@ -619,15 +657,16 @@ function calcola(vociParam){
 
   // ================= ESITO =================
   let esito, esitoCls, esitoMsg;
-  if (bocciato) { esito="NON IDONEO"; esitoCls="ko"; esitoMsg="Uno o più requisiti minimi (killer criteria) non sono soddisfatti."; }
-  else if (datiMancantiKC) { esito="VERIFICA INCOMPLETA"; esitoCls="warn"; esitoMsg="Dati mancanti sui requisiti minimi: integrare le informazioni per completare la verifica."; }
-  else if (!sogliaOk) { esito="NON IDONEO"; esitoCls="ko"; esitoMsg="Requisiti minimi soddisfatti ma punteggio "+totale+" pt < soglia minima 30 pt."; }
-  else { esito="IDONEO"; esitoCls="ok"; esitoMsg="Requisiti minimi soddisfatti e punteggio sopra la soglia di 30 pt."; }
+  if (bocciato) { esito="CRITICITÀ RILEVANTI"; esitoCls="ko"; esitoMsg="Uno o più requisiti minimi dichiarati risultano non soddisfatti: non è consigliabile procedere senza modifiche o verifiche documentali."; }
+  else if (datiMancantiKC) { esito="DA APPROFONDIRE"; esitoCls="warn"; esitoMsg="Dati mancanti sui requisiti minimi: integrare le informazioni prima del conferimento o della presentazione della domanda."; }
+  else if (!sogliaOk) { esito="DA RIVEDERE"; esitoCls="ko"; esitoMsg="Requisiti minimi dichiarati soddisfatti, ma punteggio orientativo "+totale.toLocaleString("it-IT",{maximumFractionDigits:2})+" pt < soglia minima 30 pt."; }
+  else { esito="POTENZIALMENTE AMMISSIBILE"; esitoCls="ok"; esitoMsg="Dati dichiarati compatibili con i requisiti minimi e punteggio orientativo sopra la soglia di 30 pt."; }
 
   // ================= CHECK-LIST DOC (Tabella 9) =================
   const DOCDESCR = {
     DOC01:"Documento di identità del titolare/legale rappresentante",
-    DOC02:"Autorizzazione del proprietario all'investimento, con impegno per 5 anni successivi al saldo (immobili in affitto/comodato)",
+    DOC02:"Autorizzazione del proprietario/comproprietario all'investimento e garanzia di rinnovo del titolo per l'intero periodo di impegno",
+    DOC03:"Atto costitutivo/statuto o atto deliberativo per società, soggetti collettivi e reti d'impresa",
     DOC04:"Autorizzazione all'emungimento (pozzo), prelievo consortile o uso acque reflue",
     DOC05:"Relazione Tecnica di progetto",
     DOC06:"Elaborati grafici con ubicazione puntuale degli interventi",
@@ -639,11 +678,22 @@ function calcola(vociParam){
     DOC12:"N. 3 preventivi confrontabili, indipendenti e dettagliati, acquisiti tramite portale SIAN",
     DOC13:"Dichiarazione di unicità del fornitore e relazione del tecnico (bene unico/innovativo)",
     DOC14:"Relazione specifica impianto da fonti rinnovabili (ingegnere/perito industriale)",
+    DOC15:"Documentazione probante conferimento prodotto ad associazione/OP/cooperativa",
+    DOC16:"Elenco imprese aderenti e documentazione di conferimento per progetto collettivo",
+    DOC17:"Accordi di filiera pluriennali validi prima della Domanda di Sostegno",
+    DOC18:"Documentazione provenienza materia prima non aziendale per trasformazione/commercializzazione",
+    DOC19:"Delibera di mutuo bancario o attestazione di giacenza media",
     DOC20:"DSAN impegni ed obblighi del beneficiario",
-    DOC22:"Documentazione antimafia"
+    DOC21:"DSAN divieto di pantouflage",
+    DOC22:"DSAN ai fini della certificazione antimafia",
+    DOC23:"Attestazione qualifica IAP o richiesta di attestazione per punteggio premiale IAP in società"
   };
-  const docSet = new Set(["DOC01","DOC05","DOC07","DOC11","DOC20","DOC22"]);
+  const docSet = new Set(["DOC01","DOC05","DOC07","DOC11","DOC20","DOC21","DOC22"]);
   if (inp.affitto) docSet.add("DOC02");
+  if (["OP","COOP","RETE"].includes(inp.soggettivita)) docSet.add("DOC03");
+  if (inp.p4.cdiap && inp.genere==="NA") docSet.add("DOC23");
+  if (inp.p4.coop) docSet.add("DOC15");
+  if (inp.p8fin>0) docSet.add("DOC19");
   analisi.filter(a=>a.amm).forEach(a => a.docs.forEach(d => docSet.add(d)));
   const docList = [...docSet].sort().map(c=>({cod:c, desc:DOCDESCR[c]}));
   const richiedeSIAN = docSet.has("DOC12");
@@ -669,8 +719,8 @@ function calcola(vociParam){
   let h = `
   <div class="r-head">
     <div>
-      <h2>Studio di Prefattibilità — Intervento SRD01.05</h2>
-      <div class="sub">Investimenti produttivi agricoli per la competitività · CSR Puglia 2023–2027</div>
+      <h2>Scheda preliminare di prefattibilità — Intervento SRD01.05</h2>
+      <div class="sub">Pre-studio orientativo su dati dichiarati dal richiedente · CSR Puglia 2023–2027</div>
     </div>
     <div class="meta">
       Data elaborazione: <b>${oggi}</b><br>
@@ -686,7 +736,7 @@ function calcola(vociParam){
   </table>
 
   <div class="esito ${esitoCls}"><span class="badge">${esitoCls==="ok"?"✅":esitoCls==="ko"?"⛔":"⚠️"}</span>
-    <span>ESITO AMMISSIBILITÀ: ${esito}<br><small style="font-weight:400;font-size:13px">${esitoMsg}</small></span></div>
+    <span>ESITO ORIENTATIVO PRELIMINARE: ${esito}<br><small style="font-weight:400;font-size:13px">${esitoMsg}</small></span></div>
 
   <h3 class="r">Fase 1 — Verifica requisiti minimi (killer criteria)</h3>
   <table class="r">
@@ -732,8 +782,8 @@ function calcola(vociParam){
   <table class="r">
     <tr><th style="width:7%">Princ.</th><th style="width:30%">Criterio</th><th class="num" style="width:9%">Max</th><th class="num" style="width:11%">Punti</th><th>Dettaglio calcolo</th></tr>
     ${pts.map(p=>`<tr><td><b>${p.cod}</b></td><td>${p.nome}</td><td class="num">${p.max}</td>
-      <td class="num">${p.pt===null?"<span class='miss'>N.D.</span>":"<b>"+p.pt+"</b>"}</td><td>${p.nota}</td></tr>`).join("")}
-    <tr class="tot"><td colspan="2">PUNTEGGIO TOTALE</td><td class="num">100</td><td class="num">${totale}</td>
+      <td class="num">${p.pt===null?"<span class='miss'>N.D.</span>":"<b>"+p.pt.toLocaleString("it-IT",{maximumFractionDigits:2})+"</b>"}</td><td>${p.nota}</td></tr>`).join("")}
+    <tr class="tot"><td colspan="2">PUNTEGGIO TOTALE</td><td class="num">100</td><td class="num">${totale.toLocaleString("it-IT",{maximumFractionDigits:2})}</td>
       <td>${sogliaOk?"≥ 30 pt — soglia minima superata":"< 30 pt — soglia minima NON superata"}${datiMancantiPts.length?" · Principi non calcolati per dati mancanti: "+datiMancantiPts.join(", "):""}</td></tr>
   </table>`;
   }
@@ -755,15 +805,26 @@ function calcola(vociParam){
   </ul>`;
 
   h += `
-  <div class="disclaimer">
-    Il presente studio di prefattibilità ha valore indicativo ed è elaborato sulla base dei parametri dichiarati dal richiedente
-    (fascicolo aziendale e preventivo di progetto). L'esito definitivo di ammissibilità e l'attribuzione del punteggio restano
-    di competenza dell'istruttoria dell'Autorità di Gestione. I punteggi di localizzazione (P3) sono attribuiti con criterio di
-    prevalenza (quota ≥ 50% dell'investimento/SAT nella zona). Gli impianti arborei sono valorizzati a Costi Standard
-    (Metodologia UCS Impianti Arborei — Rete Rurale Nazionale); le opere edili sul Prezzario Regionale OOPP Puglia luglio 2025.
+  <h3 class="r">Dichiarazioni preliminari</h3>
+  <div class="declarations">
+    <p><b>Dati dichiarati.</b> Il richiedente dichiara che le informazioni utilizzate per la presente scheda preliminare corrispondono a quanto riferito in sede di colloquio e si impegna a produrre la documentazione necessaria alle verifiche successive.</p>
+    <p><b>Natura del documento.</b> La presente scheda ha finalità orientativa e propedeutica al conferimento dell'incarico tecnico. Non costituisce asseverazione, Domanda di Sostegno, garanzia di ammissibilità o garanzia di finanziamento.</p>
   </div>
 
-  <div class="firma">
+  <div class="disclaimer">
+    Il presente pre-studio è elaborato sulla base dei parametri dichiarati dal richiedente e non sostituisce le verifiche
+    sul fascicolo aziendale, sui titoli di possesso/disponibilità, sulle autorizzazioni, sui preventivi SIAN e sugli ulteriori
+    requisiti previsti dall'Avviso pubblico. L'esito definitivo di ammissibilità e l'attribuzione del punteggio restano di
+    competenza dell'istruttoria dell'Autorità di Gestione. I punteggi P3 sono calcolati in modo ponderato rispetto al valore
+    dell'investimento dichiarato. Gli impianti arborei sono valorizzati a Costi Standard (Metodologia UCS Impianti Arborei
+    — Rete Rurale Nazionale); le opere edili sul Prezzario Regionale OOPP Puglia luglio 2025.
+  </div>
+
+  <div class="firma dual">
+    <div class="box">
+      Il Richiedente<br>
+      <div class="nome">${esc(inp.ditta)||"Firma per presa visione"}</div>
+    </div>
     <div class="box">
       Il Tecnico<br>
       <div class="nome">Dott. Agr. Ruggero Manca<br><small style="font-weight:400">ODAF Lecce n° 636 · idearurale</small></div>
@@ -783,6 +844,148 @@ function copiaJSON(){
   navigator.clipboard.writeText(JSON.stringify(ultimoEsito, null, 2))
     .then(()=>alert("JSON copiato negli appunti."))
     .catch(()=>alert("Copia non riuscita: aprire la console del browser."));
+}
+
+// ================= IMPORT FASCICOLO AGEA =================
+function setImportStatus(msg, cls=""){
+  const el = document.getElementById("importStatus");
+  if (!el) return;
+  el.className = "import-status" + (cls ? " "+cls : "");
+  el.textContent = msg;
+}
+function setVal(id, value){
+  const el = document.getElementById(id);
+  if (!el || value==null || value==="") return false;
+  el.value = value;
+  return true;
+}
+function setChecked(id, value){
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.checked = !!value;
+  return true;
+}
+function normalizzaTestoPdf(s){
+  return String(s||"").replace(/\r/g,"\n").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n");
+}
+function dataIsoIT(s){
+  const m = String(s||"").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+}
+function numPdf(s){
+  if (s==null) return null;
+  const cleaned = String(s).replace(/\./g,"").replace(",",".").replace(/[^\d.]/g,"");
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+function quotaPercentuale(parti, totale){
+  return totale > 0 ? Math.round((parti / totale * 100) * 10) / 10 : 0;
+}
+function estraiFascicoloAgea(testoRaw){
+  const testo = normalizzaTestoPdf(testoRaw);
+  const lines = testo.split("\n").map(l=>l.trim()).filter(Boolean);
+  const out = { campi:{}, checks:{}, p3:{}, note:[] };
+
+  const cuaa = testo.match(/CUAA\s*:\s*\n?([A-Z0-9]{11,16})/i) || testo.match(/CUAA:\s*([A-Z0-9]{11,16})/i);
+  if (cuaa) out.campi.cuaa = cuaa[1].toUpperCase();
+
+  const piva = testo.match(/Partita IVA\s*:\s*\n?(?:[A-Z0-9]{11,16}\s*\n)?(\d{11})/i);
+  if (piva) out.note.push("Partita IVA rilevata: "+piva[1]);
+
+  const denomIdx = lines.findIndex(l => /^Denominazione\s*:?$/i.test(l) || /^Denominazione\s*:/i.test(l));
+  if (denomIdx >= 0) {
+    const candidate = lines.slice(denomIdx+1, denomIdx+6).find(l => /^[A-ZÀ-Ý' ]{5,}$/.test(l) && !/DATA|COMUNE|FORMA/i.test(l));
+    if (candidate) out.campi.ditta = candidate;
+  }
+  if (!out.campi.ditta) {
+    const tit = testo.match(/Titolare o Rappresentante legale:\s*[A-Z0-9]+\s*-\s*([A-ZÀ-Ý' ]+)/i);
+    if (tit) out.campi.ditta = tit[1].trim();
+  }
+
+  const nascita = testo.match(/(\d{2}\/\d{2}\/\d{4})\s+([A-ZÀ-Ý' ]+)\s*\nForma giuridica/i);
+  if (nascita) out.campi.nascita = dataIsoIT(nascita[1]);
+
+  const sede = testo.match(/Indirizzo\s*:[^\n]*?\b\d{5}\s+([A-ZÀ-Ý' ]+)\s+\(([A-Z]{2})\)/i);
+  if (sede) out.campi.comune = sede[1].trim()+" ("+sede[2].toUpperCase()+")";
+
+  const forma = testo.match(/Forma giuridica:\s*([^\n]+)/i);
+  if (forma) {
+    const fg = forma[1].toUpperCase();
+    if (/DITTA INDIVIDUALE|IMPRESA INDIVIDUALE/.test(fg)) out.campi.soggettivita = "IA";
+    else if (/COOPERATIVA/.test(fg)) out.campi.soggettivita = "COOP";
+    else out.note.push("Forma giuridica rilevata: "+forma[1].trim()+" (verificare soggettività).");
+  }
+
+  const oteLine = testo.match(/OTE:\s*\n(?:[^\n]*\n){0,4}?([\d.,]+)\s*€/i);
+  if (oteLine) {
+    const ote = numPdf(oteLine[1]);
+    if (ote!=null) { out.campi.ote = ote.toFixed(2); out.campi.psTotale = ote.toFixed(2); }
+  }
+  const psOlio = [...testo.matchAll(/OLIVETI PER LA PRODUZIONE DI OLIVE DA OLIO\s+[\d.,]+\s+([\d.,]+)\s*Ha/gi)]
+    .map(m => numPdf(m[1])).filter(n => n!=null).reduce((a,b)=>a+b,0);
+  if (psOlio > 0) out.campi.psOlio = psOlio.toFixed(2);
+
+  const hasAffitto = /\bAFFITTO\b/i.test(testo);
+  const hasComodato = /\bCOMODATO\b/i.test(testo);
+  out.checks.affitto = hasAffitto;
+  out.checks.comodato = hasComodato;
+
+  const vincoli = [...testo.matchAll(/ZVN:\s*(SI|NO)\s+([A-D])\s+([A-ZÀ-Ý ]+)/gi)]
+    .map(m => ({zvn:m[1].toUpperCase(), area:m[2].toUpperCase(), svv:m[3].trim().toUpperCase()}));
+  if (vincoli.length) {
+    out.p3.zvn = quotaPercentuale(vincoli.filter(v=>v.zvn==="SI").length, vincoli.length);
+    out.p3.ard = quotaPercentuale(vincoli.filter(v=>v.area==="D").length, vincoli.length);
+    out.p3.svv = quotaPercentuale(vincoli.filter(v=>!/ASSENZA|NO|N\.D\./.test(v.svv)).length, vincoli.length);
+    out.note.push("P3 precompilato in modo indicativo su "+vincoli.length+" particelle/vincoli del fascicolo: verifica le quote sul valore dell'investimento.");
+  } else {
+    out.note.push("Vincoli P3 non riconosciuti automaticamente: compilare la localizzazione a mano.");
+  }
+
+  const righeConduzione = lines.filter(l => /\b(PROPRIETA'|AFFITTO|COMODATO)\b/.test(l));
+  if (righeConduzione.length) {
+    const aff = righeConduzione.filter(l=>/\bAFFITTO\b/.test(l)).length;
+    const com = righeConduzione.filter(l=>/\bCOMODATO\b/.test(l)).length;
+    out.note.push(`Titoli di conduzione rilevati: ${aff} righe in affitto, ${com} in comodato. Verificare DOC02 e scadenze.`);
+  }
+
+  return out;
+}
+function applicaDatiFascicolo(dati){
+  let n = 0;
+  Object.entries(dati.campi).forEach(([id,value]) => { if (setVal(id,value)) n++; });
+  Object.entries(dati.checks).forEach(([id,value]) => { if (value && setChecked(id,value)) n++; });
+  Object.entries(dati.p3).forEach(([k,value]) => {
+    const id = "p3_"+k;
+    if (setVal(id, value)) n++;
+  });
+  return n;
+}
+async function importaFascicolo(file){
+  if (!file) return;
+  if (!/pdf$/i.test(file.name) && file.type !== "application/pdf") {
+    setImportStatus("Il file selezionato non sembra un PDF.", "err");
+    return;
+  }
+  setImportStatus("Lettura fascicolo in corso...");
+  try {
+    const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({data: buffer}).promise;
+    let testo = "";
+    for (let i=1; i<=pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      testo += "\n" + content.items.map(item => item.str).join("\n");
+    }
+    const dati = estraiFascicoloAgea(testo);
+    const compilati = applicaDatiFascicolo(dati);
+    const note = dati.note.length ? "\n\nNote:\n- "+dati.note.join("\n- ") : "";
+    setImportStatus(`Fascicolo letto: ${pdf.numPages} pagine. Campi precompilati: ${compilati}.${note}\n\nControlla sempre i dati importati prima di far firmare la scheda.`, compilati ? "ok" : "warn");
+  } catch (err) {
+    console.error(err);
+    setImportStatus("Non riesco a leggere il PDF automaticamente. Puoi proseguire con compilazione manuale. Se sei offline, riprova con connessione internet attiva perché il lettore PDF.js viene caricato da CDN.", "err");
+  }
 }
 
 // default DdS = oggi
