@@ -142,19 +142,12 @@
     <label class="f">Data di nascita titolare
       <input type="date" id="nascita">
     </label>
-    <label class="f">Data primo insediamento
-      <input type="date" id="insediamento">
-      <small>Per qualifica Giovane Agricoltore</small>
-    </label>
     <label class="f">Genere titolare
       <select id="genere">
         <option value="M">Uomo</option>
         <option value="F">Donna</option>
         <option value="NA">Società / non applicabile</option>
       </select>
-    </label>
-    <label class="f">Data presentazione DdS (riferimento)
-      <input type="date" id="dds">
     </label>
   </div>
 </fieldset>
@@ -248,7 +241,8 @@
 <!-- ====== P4 SOGGETTO ====== -->
 <fieldset>
   <legend>6 · Caratteristiche soggetto richiedente (P4 — max 43 pt)</legend>
-  <p class="hint">Il criterio "Giovane agricoltore o Donna" (10 pt) è calcolato automaticamente da date di nascita/insediamento e genere.</p>
+  <p class="hint">Il criterio "Giovane agricoltore o Donna" (10 pt) è acquisito come dichiarazione preliminare e va verificato con la documentazione in fase di incarico.</p>
+  <div class="chk"><input type="checkbox" id="p4_giovane"><span><b>Giovane agricoltore</b> dichiarato (10 pt, da verificare)</span></div>
   <div class="chk"><input type="checkbox" id="p4_cdiap"><span>Possesso qualifica <b>CD o IAP</b> (10 pt)</span></div>
   <div class="chk"><input type="checkbox" id="p4_dop"><span>Adesione regimi <b>DOP / IGP / Prodotti di Puglia</b> (5 pt)</span></div>
   <div class="chk"><input type="checkbox" id="p4_bio"><span>Adesione <b>Agricoltura Biologica</b> (3 pt)</span></div>
@@ -482,29 +476,19 @@ function analizzaVoce(v){
   return r;
 }
 
-function anniTra(da, a){
-  if(!da || !a) return null;
-  const d1 = new Date(da), d2 = new Date(a);
-  let anni = d2.getFullYear() - d1.getFullYear();
-  const m = d2.getMonth() - d1.getMonth();
-  if (m < 0 || (m === 0 && d2.getDate() < d1.getDate())) anni--;
-  return anni;
-}
-
 function calcola(vociParam){
   const voci = Array.isArray(vociParam) ? vociParam : vociState;
-  const dds = val("dds") || new Date().toISOString().slice(0,10);
   const inp = {
     ditta: val("ditta"), cuaa: val("cuaa").toUpperCase(), comune: val("comune"),
     soggettivita: val("soggettivita"), soloSilvAcqua: chk("soloSilvAcqua"), affitto: chk("affitto"), comodato: chk("comodato"),
-    nascita: val("nascita"), insediamento: val("insediamento"), genere: val("genere"), dds,
+    nascita: val("nascita"), genere: val("genere"),
     psTotale: num("psTotale"), psOlio: num("psOlio"), ote: num("ote"),
     costoTotManuale: num("costoTot"), giaAmmesso: num("giaAmmesso") ?? 0,
     soloOlivicolo: chk("soloOlivicolo"),
     comparto: val("comparto"),
     p3: { sal:num("p3_sal")??0, zvn:num("p3_zvn")??0, ard:num("p3_ard")??0, xyl:num("p3_xyl")??0, prot:num("p3_prot")??0, n2k:num("p3_n2k")??0, svv:num("p3_svv")??0, paes:num("p3_paes")??0 },
     satSvantaggiata: num("satSvantaggiata")??0,
-    p4: { cdiap:chk("p4_cdiap"), dop:chk("p4_dop"), bio:chk("p4_bio"), coop:chk("p4_coop"), rlaq:chk("p4_rlaq"), nuovo:chk("p4_nuovo") },
+    p4: { giovane:chk("p4_giovane"), cdiap:chk("p4_cdiap"), dop:chk("p4_dop"), bio:chk("p4_bio"), coop:chk("p4_coop"), rlaq:chk("p4_rlaq"), nuovo:chk("p4_nuovo") },
     p6: parseInt(val("p6_sra")), p8cant: parseInt(val("p8_cant")), p8fin: parseInt(val("p8_fin"))
   };
 
@@ -521,10 +505,8 @@ function calcola(vociParam){
   const costoTot = daVoci ? spesaAmmessa : inp.costoTotManuale;
   if (daVoci) document.getElementById("costoTot").value = spesaAmmessa.toFixed(2);
 
-  // ---- Qualifica Giovane Agricoltore ----
-  const eta = anniTra(inp.nascita, dds);
-  const anniIns = anniTra(inp.insediamento, dds);
-  const giovane = (eta!=null && anniIns!=null) ? (eta < 41 && anniIns < 5) : null;
+  // ---- Qualifiche dichiarate in fase preliminare ----
+  const giovane = inp.p4.giovane;
   const donna = inp.genere === "F";
 
   // ================= FASE 1 — KILLER CRITERIA =================
@@ -562,9 +544,8 @@ function calcola(vociParam){
 
   // ================= FASE 2 — ALIQUOTA =================
   let aliquota, aliquotaNota;
-  if (giovane === true) { aliquota=80; aliquotaNota="Giovane Agricoltore (età "+eta+" anni alla DdS, insediato da "+anniIns+" anni)."; }
+  if (giovane === true) { aliquota=80; aliquotaNota="Giovane Agricoltore dichiarato: aliquota 80% da confermare con documentazione della qualifica."; }
   else if (inp.satSvantaggiata >= 51) { aliquota=65; aliquotaNota="≥ 51% SAT in zone con svantaggi naturali (escluse montane): "+PCT(inp.satSvantaggiata)+"."; }
-  else if (giovane === null && (inp.nascita==="" || inp.insediamento==="")) { aliquota=60; aliquotaNota="Aliquota base 60% — DATO MANCANTE per verifica Giovane Agricoltore (data nascita/insediamento)."; }
   else { aliquota=60; aliquotaNota="Aliquota base."; }
   const contributo = (costoTot!=null) ? costoTot * aliquota/100 : null;
 
@@ -619,16 +600,14 @@ function calcola(vociParam){
 
   // ---- P4 ----
   let p4=0; const p4det=[];
-  let p4gdNote;
-  if (giovane===true || donna) { p4+=10; p4det.push((giovane?"Giovane agricoltore":"Titolare donna")+" (10 pt)"); }
-  else if (giovane===null && !donna && inp.genere!=="NA") { p4gdNote="Giovane/Donna: DATO MANCANTE (date nascita/insediamento) — 0 pt prudenziale."; }
+  if (giovane || donna) { p4+=10; p4det.push((giovane?"Giovane agricoltore dichiarato":"Titolare donna")+" (10 pt)"); }
   if (inp.p4.cdiap){ p4+=10; p4det.push("Qualifica CD/IAP (10 pt)"); }
   if (inp.p4.dop){ p4+=5; p4det.push("DOP/IGP/Prodotti di Puglia (5 pt)"); }
   if (inp.p4.bio){ p4+=3; p4det.push("Agricoltura Biologica (3 pt)"); }
   if (inp.p4.coop){ p4+=7; p4det.push("Coop/OP/Accordo di filiera (7 pt)"); }
   if (inp.p4.rlaq){ p4+=3; p4det.push("Rete Lavoro Agricolo di Qualità (3 pt)"); }
   if (inp.p4.nuovo){ p4+=5; p4det.push("Nuovo beneficiario SRD01 (5 pt)"); }
-  pts.push({cod:"P4", nome:"Caratteristiche del soggetto richiedente", max:43, pt:p4, nota:(p4det.length? p4det.join("; ")+"." : "Nessun requisito soggettivo dichiarato.") + (p4gdNote? " "+p4gdNote : "")});
+  pts.push({cod:"P4", nome:"Caratteristiche del soggetto richiedente", max:43, pt:p4, nota:(p4det.length? p4det.join("; ")+"." : "Nessun requisito soggettivo dichiarato.")});
 
   // ---- P5 ----
   let p5=0, p5note;
@@ -701,7 +680,7 @@ function calcola(vociParam){
   // documentazione di profilo (a supporto del punteggio, senza codice Tabella 9)
   const docProfilo = [];
   if (inp.p4.cdiap) docProfilo.push("Attestazione qualifica CD/IAP");
-  if (giovane===true) docProfilo.push("Documentazione primo insediamento Giovane Agricoltore");
+  if (giovane===true) docProfilo.push("Documentazione qualifica Giovane Agricoltore");
   if (inp.p4.dop) docProfilo.push("Certificato adesione DOP/IGP/Prodotti di Puglia");
   if (inp.p4.bio) docProfilo.push("Certificato di operatore biologico (notifica SINAB)");
   if (inp.p4.coop) docProfilo.push("Atto costitutivo/statuto Coop-OP o accordo di filiera sottoscritto");
@@ -710,12 +689,13 @@ function calcola(vociParam){
   if (inp.p6>0) docProfilo.push("Domanda di partecipazione interventi SRA");
 
   ultimoEsito = { input:inp, voci, analisiVoci:analisi.map(a=>({desc:a.voce.desc, cat:a.voce.cat, importo:a.voce.importo, ammissibile:a.amm, prioritaria:a.prio, note:a.note, docs:a.docs})),
-    spesaAmmessa:costoTot, spesaPrioritaria, spesaEsclusa, eta, anniIns, giovane, donna,
+    spesaAmmessa:costoTot, spesaPrioritaria, spesaEsclusa, giovane, donna,
     killerCriteria:kc, esito, aliquota, contributo, punteggi:pts, totale, datiMancanti:datiMancantiPts,
     documenti:docList, documentiProfilo:docProfilo, obbligoSIAN:richiedeSIAN };
 
   // ================= RENDER =================
   const oggi = new Date().toLocaleDateString("it-IT",{day:"2-digit",month:"long",year:"numeric"});
+  const nascitaFmt = inp.nascita ? inp.nascita.split("-").reverse().join("/") : "";
   let h = `
   <div class="r-head">
     <div>
@@ -723,16 +703,15 @@ function calcola(vociParam){
       <div class="sub">Pre-studio orientativo su dati dichiarati dal richiedente · CSR Puglia 2023–2027</div>
     </div>
     <div class="meta">
-      Data elaborazione: <b>${oggi}</b><br>
-      Rif. DdS: ${new Date(dds).toLocaleDateString("it-IT")}
+      Data elaborazione: <b>${oggi}</b>
     </div>
   </div>
 
   <table class="r">
     <tr><th style="width:25%">Ditta</th><td>${esc(inp.ditta)||"—"}</td><th style="width:15%">CUAA</th><td>${esc(inp.cuaa)||"—"}</td></tr>
     <tr><th>Soggettività</th><td>${({IA:"Imprenditore Agricolo (art. 2135 c.c.)",OP:"Organizzazione di Produttori",COOP:"Cooperativa agricola",RETE:"Rete di Imprese",ALTRO:"Altro"})[inp.soggettivita]}</td><th>Sede</th><td>${esc(inp.comune)||"—"}</td></tr>
-    <tr><th>Titolare</th><td>${inp.genere==="F"?"Donna":inp.genere==="M"?"Uomo":"Società"}${eta!=null?", "+eta+" anni alla DdS":""}</td>
-        <th>Giovane Agricoltore</th><td>${giovane===true?"<b>SÌ</b> (insediato da "+anniIns+" anni)":giovane===false?"No":"<span class='miss'>DATO MANCANTE</span>"}</td></tr>
+    <tr><th>Titolare</th><td>${inp.genere==="F"?"Donna":inp.genere==="M"?"Uomo":"Società"}${nascitaFmt?" · nascita "+nascitaFmt:""}</td>
+        <th>Giovane Agricoltore</th><td>${giovane===true?"<b>SÌ</b> dichiarato, da verificare":"No dichiarato"}</td></tr>
   </table>
 
   <div class="esito ${esitoCls}"><span class="badge">${esitoCls==="ok"?"✅":esitoCls==="ko"?"⛔":"⚠️"}</span>
@@ -988,8 +967,6 @@ async function importaFascicolo(file){
   }
 }
 
-// default DdS = oggi
-document.getElementById("dds").value = new Date().toISOString().slice(0,10);
 renderVoci();
 </script>
 </body>

@@ -27,7 +27,7 @@ Tutto il calcolo avviene nel browser: nessun dato viene inviato a server esterni
 
 - Il punteggio P3 (localizzazione) è calcolato in modo ponderato rispetto al valore dell'investimento ricadente in ciascuna zona, come previsto dall'Avviso SRD01.05 generalista.
 - Le quote P3 importate dal fascicolo sono indicative: il fascicolo descrive particelle/vincoli, mentre il bando richiede la ponderazione sul valore dell'investimento localizzato nelle aree valorizzate.
-- La qualifica di Giovane Agricoltore è calcolata automaticamente: 41 anni non compiuti alla data DdS e primo insediamento da meno di 5 anni.
+- La qualifica di Giovane Agricoltore è acquisita come dichiarazione preliminare e va verificata con la documentazione in fase di incarico.
 - Se un dato di input è assente (es. OTE per il P5), il principio è marcato "N.D." ed escluso dal calcolo.
 
 La scheda ha valore preliminare e orientativo: non costituisce asseverazione, Domanda di Sostegno, garanzia di ammissibilità o garanzia di finanziamento. L'esito definitivo resta di competenza dell'istruttoria dell'Autorità di Gestione.
