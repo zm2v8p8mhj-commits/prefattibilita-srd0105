@@ -871,10 +871,19 @@ function estraiFascicoloAgea(testoRaw){
   const piva = testo.match(/Partita IVA\s*:\s*\n?(?:[A-Z0-9]{11,16}\s*\n)?(\d{11})/i);
   if (piva) out.note.push("Partita IVA rilevata: "+piva[1]);
 
-  const denomIdx = lines.findIndex(l => /^Denominazione\s*:?$/i.test(l) || /^Denominazione\s*:/i.test(l));
-  if (denomIdx >= 0) {
-    const candidate = lines.slice(denomIdx+1, denomIdx+6).find(l => /^[A-ZÀ-Ý' ]{5,}$/.test(l) && !/DATA|COMUNE|FORMA/i.test(l));
-    if (candidate) out.campi.ditta = candidate;
+  // Denominazione: prima prova il valore sulla stessa riga ("Denominazione: ROSSI MARIO"),
+  // poi quello sulle righe successive (layout AGEA con etichetta e valore separati).
+  const denomInline = testo.match(/Denominazione\s*:\s*([A-ZÀ-Ý0-9'&.\- ]{4,})/i);
+  if (denomInline) {
+    const v = denomInline[1].trim().replace(/\s{2,}/g," ");
+    if (v && !/^(DATA|COMUNE|FORMA|CUAA|PARTITA)/i.test(v)) out.campi.ditta = v;
+  }
+  if (!out.campi.ditta) {
+    const denomIdx = lines.findIndex(l => /^Denominazione\s*:?$/i.test(l) || /^Denominazione\s*:/i.test(l));
+    if (denomIdx >= 0) {
+      const candidate = lines.slice(denomIdx+1, denomIdx+6).find(l => /^[A-ZÀ-Ý' ]{5,}$/.test(l) && !/DATA|COMUNE|FORMA/i.test(l));
+      if (candidate) out.campi.ditta = candidate;
+    }
   }
   if (!out.campi.ditta) {
     const tit = testo.match(/Titolare o Rappresentante legale:\s*[A-Z0-9]+\s*-\s*([A-ZÀ-Ý' ]+)/i);
@@ -895,7 +904,9 @@ function estraiFascicoloAgea(testoRaw){
     else out.note.push("Forma giuridica rilevata: "+forma[1].trim()+" (verificare soggettività).");
   }
 
-  const oteLine = testo.match(/OTE:\s*\n(?:[^\n]*\n){0,4}?([\d.,]+)\s*€/i);
+  // OTE: accetta valore sulla stessa riga o sulle righe successive, con simbolo € oppure "EUR".
+  const oteLine = testo.match(/OTE\s*:\s*\n?(?:[^\n]*\n){0,4}?([\d.,]+)\s*(?:€|EUR\b)/i)
+               || testo.match(/OTE\s*:\s*([\d.,]+)/i);
   if (oteLine) {
     const ote = numPdf(oteLine[1]);
     if (ote!=null) { out.campi.ote = ote.toFixed(2); out.campi.psTotale = ote.toFixed(2); }
@@ -940,55 +951,182 @@ function applicaDatiFascicolo(dati){
   return n;
 }
 let pdfjsLibPromise = null;
+// Sorgenti PDF.js: prima la copia locale (cartella vendor/, serve la pagina via http),
+// poi CDN multipli come ripiego. La copia locale evita dipendenze di rete e tiene
+// tutto offline (nessun dato del fascicolo lascia il browser).
+const PDFJS_SOURCES = [
+  {
+    nome: "locale (vendor)",
+    lib: "vendor/pdfjs/pdf.min.mjs",
+    worker: "vendor/pdfjs/pdf.worker.min.mjs"
+  },
+  {
+    nome: "cdnjs",
+    lib: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs",
+    worker: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs"
+  },
+  {
+    nome: "jsdelivr",
+    lib: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs",
+    worker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs"
+  },
+  {
+    nome: "unpkg",
+    lib: "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.mjs",
+    worker: "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.mjs"
+  }
+];
 async function caricaPdfJs(){
-  if (window.pdfjsLib) return window.pdfjsLib;
+  if (window.pdfjsLib && window.pdfjsLib.getDocument) return window.pdfjsLib;
   if (!pdfjsLibPromise) {
-    pdfjsLibPromise = import("./vendor/pdfjs/pdf.min.mjs").then(pdfjs => {
-      if (pdfjs.GlobalWorkerOptions) {
-        pdfjs.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/pdf.worker.min.mjs";
+    pdfjsLibPromise = (async () => {
+      let ultimoErrore = null;
+      for (const src of PDFJS_SOURCES) {
+        try {
+          const pdfjs = await import(src.lib);
+          if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = src.worker;
+          console.info("PDF.js caricato da sorgente: "+src.nome);
+          return pdfjs;
+        } catch (err) {
+          ultimoErrore = err;
+          console.warn("Caricamento PDF.js non riuscito da "+src.nome+" ("+src.lib+")", err);
+        }
       }
-      return pdfjs;
-    });
+      const e = new Error("Lettore PDF.js non disponibile da nessuna sorgente (locale né CDN).");
+      e.cause = ultimoErrore;
+      throw e;
+    })();
+    // se tutte le sorgenti falliscono, azzera la promise così un nuovo tentativo riprova da capo
+    pdfjsLibPromise.catch(() => { pdfjsLibPromise = null; });
   }
   return pdfjsLibPromise;
 }
-async function apriPdfConFallback(pdfjs, buffer){
+// Legge i byte del File in modo robusto: prova file.arrayBuffer() (con un secondo
+// tentativo perché l'errore I/O dei file cloud può essere transitorio), poi ripiega
+// su FileReader. Se entrambi falliscono, segnala in modo specifico il caso del file
+// cloud non scaricato localmente. Restituisce sempre un Uint8Array non vuoto.
+async function leggiBytesFile(file){
+  let ultimoErrore = null;
+  for (let tentativo = 1; tentativo <= 2; tentativo++) {
+    try {
+      const ab = await file.arrayBuffer();
+      if (ab && ab.byteLength > 0) return new Uint8Array(ab);
+      ultimoErrore = new Error("Il file risulta vuoto (0 byte).");
+    } catch (err) {
+      ultimoErrore = err;
+      console.warn("file.arrayBuffer() non riuscito (tentativo "+tentativo+")", err);
+    }
+  }
   try {
-    return await pdfjs.getDocument({ data: new Uint8Array(buffer.slice(0)) }).promise;
+    const bytes = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        const r = fr.result;
+        if (r && r.byteLength > 0) resolve(new Uint8Array(r));
+        else reject(new Error("Il file risulta vuoto (0 byte)."));
+      };
+      fr.onerror = () => reject(fr.error || new Error("FileReader: lettura non riuscita."));
+      fr.onabort = () => reject(new Error("Lettura del file interrotta."));
+      fr.readAsArrayBuffer(file);
+    });
+    return bytes;
+  } catch (err) {
+    ultimoErrore = err;
+    console.warn("Anche FileReader non è riuscito a leggere il file.", err);
+  }
+  const grezzo = (ultimoErrore && ultimoErrore.message) ? ultimoErrore.message : "causa sconosciuta";
+  // Errori tipici dei placeholder Google Drive/iCloud non materializzati in locale.
+  const cloud = /I\/O|timed out|operation failed|NotReadable|NotFound|could not be read|impossibile/i.test(grezzo);
+  const e = new Error(cloud ? "FILE_NON_DISPONIBILE_LOCALMENTE" : ("Lettura del file non riuscita: " + grezzo));
+  e.cause = ultimoErrore;
+  e.grezzo = grezzo;
+  throw e;
+}
+// Apre il PDF dai byte. Tenta con il worker; se il worker non parte ripiega sul
+// "fake worker" su thread principale (workerPort = null), supportato da PDF.js v4.
+async function apriPdfConFallback(pdfjs, bytes){
+  const baseOpts = { isEvalSupported: false, useSystemFonts: true };
+  try {
+    return await pdfjs.getDocument({ data: bytes.slice(0), ...baseOpts }).promise;
   } catch (workerErr) {
-    console.warn("Lettura PDF con worker non riuscita, riprovo senza worker.", workerErr);
-    return await pdfjs.getDocument({ data: new Uint8Array(buffer.slice(0)), disableWorker: true }).promise;
+    console.warn("Lettura PDF con worker non riuscita, riprovo su thread principale.", workerErr);
+    try { if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerPort = null; } catch(_) {}
+    return await pdfjs.getDocument({ data: bytes.slice(0), ...baseOpts }).promise;
   }
 }
 async function importaFascicolo(file){
   if (!file) return;
   if (!/pdf$/i.test(file.name) && file.type !== "application/pdf") {
-    setImportStatus("Il file selezionato non sembra un PDF.", "err");
+    setImportStatus("Il file selezionato non sembra un PDF. Seleziona il fascicolo aziendale in formato PDF.", "err");
     return;
   }
-  setImportStatus("Lettura fascicolo in corso...");
+  setImportStatus("Lettura fascicolo in corso… (se il file è su Google Drive/iCloud può richiedere qualche secondo)");
+  // 1) Lettura byte del file
+  let bytes;
+  try {
+    bytes = await leggiBytesFile(file);
+  } catch (err) {
+    console.error(err);
+    if (err && err.message === "FILE_NON_DISPONIBILE_LOCALMENTE") {
+      setImportStatus(
+        "Il file non è disponibile in locale: sembra un documento Google Drive/iCloud non ancora scaricato sul Mac.\n"+
+        "Soluzione: nel Finder fai clic destro sul file → \"Rendi disponibile offline\" (o aprilo una volta e attendi il download), "+
+        "poi ricaricalo qui. In alternativa copialo prima in una cartella locale (es. Scrivania).\n"+
+        "Puoi comunque proseguire subito con la compilazione manuale.", "err");
+    } else {
+      setImportStatus(
+        "Non riesco a leggere il file selezionato. Puoi proseguire con la compilazione manuale.\n"+
+        "Dettaglio tecnico: " + ((err && (err.grezzo || err.message)) || "errore sconosciuto"), "err");
+    }
+    return;
+  }
+  // 2) Apertura PDF con PDF.js
+  let pdf;
   try {
     const pdfjs = await caricaPdfJs();
-    const buffer = await file.arrayBuffer();
-    const pdf = await apriPdfConFallback(pdfjs, buffer);
-    let testo = "";
+    pdf = await apriPdfConFallback(pdfjs, bytes);
+  } catch (err) {
+    console.error(err);
+    const dettaglio = (err && (err.message || (err.cause && err.cause.message))) || "errore sconosciuto";
+    setImportStatus(
+      "Il file è stato letto, ma non è apribile come PDF (potrebbe essere danneggiato, protetto o non un vero PDF). "+
+      "Puoi proseguire con la compilazione manuale.\nDettaglio tecnico: " + dettaglio, "err");
+    return;
+  }
+  // 3) Estrazione testo
+  let testo = "";
+  try {
     for (let i=1; i<=pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       testo += "\n" + content.items.map(item => item.str).join("\n");
     }
-    if (!testo.trim()) {
-      throw new Error("Il PDF non contiene testo estraibile: potrebbe essere una scansione/immagine.");
-    }
-    const dati = estraiFascicoloAgea(testo);
-    const compilati = applicaDatiFascicolo(dati);
-    const note = dati.note.length ? "\n\nNote:\n- "+dati.note.join("\n- ") : "";
-    setImportStatus(`Fascicolo letto: ${pdf.numPages} pagine. Campi precompilati: ${compilati}.${note}\n\nControlla sempre i dati importati prima di far firmare la scheda.`, compilati ? "ok" : "warn");
   } catch (err) {
     console.error(err);
-    const dettaglio = err && err.message ? "\nDettaglio tecnico: "+err.message : "";
-    setImportStatus("Non riesco a leggere il PDF automaticamente. Puoi proseguire con compilazione manuale. Se il file è su Google Drive/iCloud, scaricalo prima sul Mac e ricaricalo."+dettaglio, "err");
+    setImportStatus(
+      `Fascicolo aperto (${pdf.numPages} pagine) ma l'estrazione del testo è fallita: prosegui a mano.\n`+
+      "Dettaglio tecnico: " + ((err && err.message) || "errore sconosciuto"), "warn");
+    return;
   }
+  if (!testo.trim()) {
+    setImportStatus(
+      `Fascicolo letto: ${pdf.numPages} pagine, ma il PDF non contiene testo estraibile `+
+      "(probabilmente è una scansione/immagine): prosegui a mano.", "warn");
+    return;
+  }
+  // 4) Riconoscimento campi
+  const dati = estraiFascicoloAgea(testo);
+  const compilati = applicaDatiFascicolo(dati);
+  if (!compilati) {
+    const note = dati.note.length ? "\n\nNote:\n- "+dati.note.join("\n- ") : "";
+    setImportStatus(
+      `Fascicolo letto: ${pdf.numPages} pagine, ma dati non riconosciuti automaticamente: prosegui a mano.${note}`, "warn");
+    return;
+  }
+  const note = dati.note.length ? "\n\nNote:\n- "+dati.note.join("\n- ") : "";
+  setImportStatus(
+    `Fascicolo letto: ${pdf.numPages} pagine. Campi precompilati (orientativi): ${compilati}.${note}\n\n`+
+    "Verifica sempre i dati importati prima di far firmare la scheda: sono indicativi e da confermare.", "ok");
 }
 
 renderVoci();
