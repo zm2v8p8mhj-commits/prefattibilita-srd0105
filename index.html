@@ -112,6 +112,18 @@
 <main>
 <div id="formArea">
 
+<!-- ====== IMPORT FASCICOLO ====== -->
+<fieldset>
+  <legend>Caricamento fascicolo aziendale AGEA</legend>
+  <div class="import-box">
+    <label class="f">Fascicolo aziendale in PDF
+      <input type="file" id="fascicoloPdf" accept="application/pdf" onchange="importaFascicolo(this.files[0])">
+      <small>Carica il fascicolo per precompilare i dati disponibili. Tutto resta nel browser; se il PDF non viene caricato puoi proseguire a mano.</small>
+    </label>
+    <div id="importStatus" class="import-status">Nessun fascicolo caricato.</div>
+  </div>
+</fieldset>
+
 <!-- ====== ANAGRAFICA ====== -->
 <fieldset>
   <legend>1 · Dati azienda e soggettività</legend>
@@ -149,18 +161,6 @@
         <option value="NA">Società / non applicabile</option>
       </select>
     </label>
-  </div>
-</fieldset>
-
-<!-- ====== IMPORT FASCICOLO ====== -->
-<fieldset>
-  <legend>1 bis · Caricamento fascicolo aziendale AGEA</legend>
-  <div class="import-box">
-    <label class="f">Fascicolo aziendale in PDF
-      <input type="file" id="fascicoloPdf" accept="application/pdf" onchange="importaFascicolo(this.files[0])">
-      <small>Carica il fascicolo per precompilare i dati disponibili. Tutto resta nel browser; se il PDF non viene caricato puoi proseguire a mano.</small>
-    </label>
-    <div id="importStatus" class="import-status">Nessun fascicolo caricato.</div>
   </div>
 </fieldset>
 
