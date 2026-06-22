@@ -33,6 +33,7 @@
   .import-status.ok{color:var(--green)}
   .import-status.warn{color:var(--amber)}
   .import-status.err{color:var(--red)}
+  .aliquota-preview{margin-top:6px;font-size:13px;font-weight:600;color:var(--green);background:#eef7ee;border:1px solid var(--green-light);border-radius:6px;padding:6px 10px;display:inline-block}
   table.inp{width:100%;border-collapse:collapse;font-size:14px}
   table.inp th,table.inp td{border:1px solid var(--line);padding:6px 8px;text-align:left}
   table.inp th{background:var(--green-pale);font-size:12.5px}
@@ -232,9 +233,10 @@
   </table>
   <div class="grid" style="margin-top:10px">
     <label class="f">% SAT in zone con svantaggi naturali (escluse montane)
-      <input type="number" id="satSvantaggiata" min="0" max="100" value="0">
-      <small>Se ≥ 51% → aliquota di sostegno 65%</small>
+      <input type="number" id="satSvantaggiata" min="0" max="100" value="0" oninput="aggiornaAliquotaPreview()">
+      <small>Calcolata in automatico: se ≥ 51% l'aliquota diventa 65% (salvo 80% se giovane agricoltore). Riferita alla superficie aziendale (SAT), distinta dalla riga "Zone svantaggiate" qui sopra che pesa sul punteggio P3.</small>
     </label>
+    <div id="aliquotaPreview" class="aliquota-preview">Aliquota di sostegno stimata: 60% (base) — orientativa, da confermare</div>
   </div>
 </fieldset>
 
@@ -242,7 +244,7 @@
 <fieldset>
   <legend>6 · Caratteristiche soggetto richiedente (P4 — max 43 pt)</legend>
   <p class="hint">Il criterio "Giovane agricoltore o Donna" (10 pt) è acquisito come dichiarazione preliminare e va verificato con la documentazione in fase di incarico.</p>
-  <div class="chk"><input type="checkbox" id="p4_giovane"><span><b>Giovane agricoltore</b> dichiarato (10 pt, da verificare)</span></div>
+  <div class="chk"><input type="checkbox" id="p4_giovane" onchange="aggiornaAliquotaPreview()"><span><b>Giovane agricoltore</b> dichiarato (10 pt, da verificare)</span></div>
   <div class="chk"><input type="checkbox" id="p4_cdiap"><span>Possesso qualifica <b>CD o IAP</b> (10 pt)</span></div>
   <div class="chk"><input type="checkbox" id="p4_dop"><span>Adesione regimi <b>DOP / IGP / Prodotti di Puglia</b> (5 pt)</span></div>
   <div class="chk"><input type="checkbox" id="p4_bio"><span>Adesione <b>Agricoltura Biologica</b> (3 pt)</span></div>
@@ -1164,7 +1166,22 @@ async function importaFascicolo(file){
     "Verifica sempre i dati importati prima di far firmare la scheda: sono indicativi e da confermare.", "ok");
 }
 
+// Anteprima live dell'aliquota di sostegno: rispecchia la logica della Fase 2 del calcolo
+// (80% giovane agricoltore dichiarato, altrimenti 65% se SAT svantaggiata ≥ 51%, altrimenti 60%).
+function aggiornaAliquotaPreview(){
+  const el = document.getElementById("aliquotaPreview");
+  if (!el) return;
+  const giovane = !!(document.getElementById("p4_giovane") && document.getElementById("p4_giovane").checked);
+  const sat = parseFloat((document.getElementById("satSvantaggiata")||{}).value) || 0;
+  let a, motivo;
+  if (giovane) { a = 80; motivo = "giovane agricoltore dichiarato"; }
+  else if (sat >= 51) { a = 65; motivo = "≥ 51% SAT in zone con svantaggi naturali"; }
+  else { a = 60; motivo = "aliquota base"; }
+  el.textContent = "Aliquota di sostegno stimata: " + a + "% (" + motivo + ") — orientativa, da confermare";
+}
+
 renderVoci();
+aggiornaAliquotaPreview();
 </script>
 </body>
 </html>
