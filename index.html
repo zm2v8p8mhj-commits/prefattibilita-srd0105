@@ -939,6 +939,27 @@ function applicaDatiFascicolo(dati){
   });
   return n;
 }
+let pdfjsLibPromise = null;
+async function caricaPdfJs(){
+  if (window.pdfjsLib) return window.pdfjsLib;
+  if (!pdfjsLibPromise) {
+    pdfjsLibPromise = import("./vendor/pdfjs/pdf.min.mjs").then(pdfjs => {
+      if (pdfjs.GlobalWorkerOptions) {
+        pdfjs.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/pdf.worker.min.mjs";
+      }
+      return pdfjs;
+    });
+  }
+  return pdfjsLibPromise;
+}
+async function apriPdfConFallback(pdfjs, buffer){
+  try {
+    return await pdfjs.getDocument({ data: new Uint8Array(buffer.slice(0)) }).promise;
+  } catch (workerErr) {
+    console.warn("Lettura PDF con worker non riuscita, riprovo senza worker.", workerErr);
+    return await pdfjs.getDocument({ data: new Uint8Array(buffer.slice(0)), disableWorker: true }).promise;
+  }
+}
 async function importaFascicolo(file){
   if (!file) return;
   if (!/pdf$/i.test(file.name) && file.type !== "application/pdf") {
@@ -947,15 +968,17 @@ async function importaFascicolo(file){
   }
   setImportStatus("Lettura fascicolo in corso...");
   try {
-    const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs");
-    pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+    const pdfjs = await caricaPdfJs();
     const buffer = await file.arrayBuffer();
-    const pdf = await pdfjs.getDocument({data: buffer}).promise;
+    const pdf = await apriPdfConFallback(pdfjs, buffer);
     let testo = "";
     for (let i=1; i<=pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       testo += "\n" + content.items.map(item => item.str).join("\n");
+    }
+    if (!testo.trim()) {
+      throw new Error("Il PDF non contiene testo estraibile: potrebbe essere una scansione/immagine.");
     }
     const dati = estraiFascicoloAgea(testo);
     const compilati = applicaDatiFascicolo(dati);
@@ -963,7 +986,8 @@ async function importaFascicolo(file){
     setImportStatus(`Fascicolo letto: ${pdf.numPages} pagine. Campi precompilati: ${compilati}.${note}\n\nControlla sempre i dati importati prima di far firmare la scheda.`, compilati ? "ok" : "warn");
   } catch (err) {
     console.error(err);
-    setImportStatus("Non riesco a leggere il PDF automaticamente. Puoi proseguire con compilazione manuale. Se sei offline, riprova con connessione internet attiva perché il lettore PDF.js viene caricato da CDN.", "err");
+    const dettaglio = err && err.message ? "\nDettaglio tecnico: "+err.message : "";
+    setImportStatus("Non riesco a leggere il PDF automaticamente. Puoi proseguire con compilazione manuale. Se il file è su Google Drive/iCloud, scaricalo prima sul Mac e ricaricalo."+dettaglio, "err");
   }
 }
 

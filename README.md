@@ -8,7 +8,7 @@ Lo strumento è pensato per il primo colloquio con la ditta: raccoglie i dati di
 
 Apri `index.html` nel browser (oppure la versione online su GitHub Pages), carica eventualmente il fascicolo aziendale AGEA in PDF per precompilare i dati disponibili, integra o correggi manualmente le informazioni dichiarate dalla ditta e la prima ipotesi di investimento, premi **Calcola prefattibilità** e poi **Salva PDF** per scaricare il report.
 
-Tutto il calcolo avviene nel browser: nessun dato viene inviato a server esterni. La lettura del PDF usa PDF.js caricato da CDN al momento dell'import; se non c'è connessione internet, la compilazione manuale resta sempre disponibile.
+Tutto il calcolo avviene nel browser: nessun dato viene inviato a server esterni. La lettura del PDF usa PDF.js incluso nella cartella `vendor/pdfjs`, quindi non dipende da servizi esterni; se il fascicolo non è leggibile automaticamente, la compilazione manuale resta sempre disponibile.
 
 ## Cosa calcola
 
