@@ -853,8 +853,21 @@ function dataIsoIT(s){
 }
 function numPdf(s){
   if (s==null) return null;
-  const cleaned = String(s).replace(/\./g,"").replace(",",".").replace(/[^\d.]/g,"");
-  const n = parseFloat(cleaned);
+  let str = String(s).replace(/[^\d.,]/g,"");
+  if (!str) return null;
+  const hasComma = str.includes(","), hasDot = str.includes(".");
+  // Gestisce sia il formato italiano (1.234,56) sia quello con punto decimale (1234.56),
+  // perché il fascicolo AGEA usa il punto come separatore decimale nella tabella PS.
+  if (hasComma && hasDot) {
+    // l'ultimo separatore presente è quello decimale
+    if (str.lastIndexOf(",") > str.lastIndexOf(".")) str = str.replace(/\./g,"").replace(",",".");
+    else str = str.replace(/,/g,"");
+  } else if (hasComma) {
+    str = str.replace(/\./g,"").replace(",",".");
+  } else if (hasDot && str.split(".").length > 2) {
+    str = str.replace(/\./g,""); // più punti = separatori di migliaia
+  }
+  const n = parseFloat(str);
   return Number.isFinite(n) ? n : null;
 }
 function quotaPercentuale(parti, totale){
@@ -893,8 +906,15 @@ function estraiFascicoloAgea(testoRaw){
   const nascita = testo.match(/(\d{2}\/\d{2}\/\d{4})\s+([A-ZÀ-Ý' ]+)\s*\nForma giuridica/i);
   if (nascita) out.campi.nascita = dataIsoIT(nascita[1]);
 
-  const sede = testo.match(/Indirizzo\s*:[^\n]*?\b\d{5}\s+([A-ZÀ-Ý' ]+)\s+\(([A-Z]{2})\)/i);
-  if (sede) out.campi.comune = sede[1].trim()+" ("+sede[2].toUpperCase()+")";
+  // Comune/Provincia sede: nel fascicolo l'indirizzo (CAP COMUNE (PROV)) è su una riga
+  // successiva all'etichetta "Indirizzo :", quindi cerco il pattern CAP+Comune+(Prov)
+  // nella finestra dopo "Indirizzo"; in mancanza, prendo la prima occorrenza nel testo.
+  const rePosizione = /\b\d{5}\s+([A-ZÀ-Ý'’.\- ]{2,}?)\s+\(([A-Z]{2})\)/;
+  let sede = null;
+  const idxIndirizzo = testo.search(/Indirizzo\s*:/i);
+  if (idxIndirizzo >= 0) sede = testo.slice(idxIndirizzo, idxIndirizzo + 400).match(rePosizione);
+  if (!sede) sede = testo.match(rePosizione);
+  if (sede) out.campi.comune = sede[1].trim().replace(/\s{2,}/g," ") + " (" + sede[2].toUpperCase() + ")";
 
   const forma = testo.match(/Forma giuridica:\s*([^\n]+)/i);
   if (forma) {
@@ -904,14 +924,29 @@ function estraiFascicoloAgea(testoRaw){
     else out.note.push("Forma giuridica rilevata: "+forma[1].trim()+" (verificare soggettività).");
   }
 
-  // OTE: accetta valore sulla stessa riga o sulle righe successive, con simbolo € oppure "EUR".
-  const oteLine = testo.match(/OTE\s*:\s*\n?(?:[^\n]*\n){0,4}?([\d.,]+)\s*(?:€|EUR\b)/i)
-               || testo.match(/OTE\s*:\s*([\d.,]+)/i);
-  if (oteLine) {
-    const ote = numPdf(oteLine[1]);
-    if (ote!=null) { out.campi.ote = ote.toFixed(2); out.campi.psTotale = ote.toFixed(2); }
+  // Tabella della Produzione Standard: delimitata tra l'intestazione OTE/PS e l'inizio
+  // dell'elenco delle particelle catastali (dove "OLIVETI…" ricompare riga per riga e
+  // gonfierebbe i totali). Le somme di PS si leggono solo dentro questa sezione.
+  const iniPS = testo.search(/Produzione standard tot|Orientamento Tecnico/i);
+  const finePS = testo.search(/Elenco delle particelle/i);
+  const sezPS = iniPS >= 0 ? testo.slice(iniPS, finePS > iniPS ? finePS : iniPS + 2000) : "";
+
+  // PS totale: numero seguito dal simbolo € isolato, subito dopo "Produzione standard tot".
+  // Nel fascicolo AGEA la classe OTE è una dicitura testuale (es. "AZIENDE SPECIALIZZATE
+  // IN OLIVICOLTURA"); il valore monetario per il rapporto P5 si assume pari alla PS totale.
+  let psTot = null;
+  const psTotM = sezPS.match(/Produzione standard tot[^\n]*\n[\s\S]{0,200}?\b([\d][\d.,]*)\s*\n\s*€/i)
+              || (testo.match(/OTE\s*:\s*\n?(?:[^\n]*\n){0,4}?([\d.,]+)\s*(?:€|EUR\b)/i)); // fallback layout inline
+  if (psTotM) psTot = numPdf(psTotM[1]);
+  if (psTot != null) {
+    out.campi.psTotale = psTot.toFixed(2);
+    out.campi.ote = psTot.toFixed(2);
+    out.note.push("Valore OTE/P5 precompilato pari alla Produzione Standard totale (€ "+psTot.toFixed(2)+"): verificare la definizione di \"valore OTE\" richiesta per il punteggio P5.");
   }
-  const psOlio = [...testo.matchAll(/OLIVETI PER LA PRODUZIONE DI OLIVE DA OLIO\s+[\d.,]+\s+([\d.,]+)\s*Ha/gi)]
+  const classeOte = (sezPS.match(/\n(AZIENDE[A-ZÀ-Ý' ]{4,})\n/) || sezPS.match(/\n([A-ZÀ-Ý' ]{12,})\n\s*[\d]/));
+  if (classeOte) out.note.push("Classe OTE rilevata: "+classeOte[1].trim()+" (informazione, non usata nel calcolo).");
+
+  const psOlio = [...sezPS.matchAll(/OLIVETI PER LA PRODUZIONE DI OLIVE DA OLIO\s+[\d.,]+\s+([\d.,]+)\s*Ha/gi)]
     .map(m => numPdf(m[1])).filter(n => n!=null).reduce((a,b)=>a+b,0);
   if (psOlio > 0) out.campi.psOlio = psOlio.toFixed(2);
 
