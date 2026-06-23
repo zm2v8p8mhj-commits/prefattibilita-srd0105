@@ -34,6 +34,14 @@
   .import-status.warn{color:var(--amber)}
   .import-status.err{color:var(--red)}
   .aliquota-preview{margin-top:6px;font-size:13px;font-weight:600;color:var(--green);background:#eef7ee;border:1px solid var(--green-light);border-radius:6px;padding:6px 10px;display:inline-block}
+  .part-box{margin-top:10px;border:1px dashed var(--green-light);border-radius:8px;background:#fbfffb;padding:10px 12px}
+  .part-title{font-weight:700;font-size:13px;color:var(--green);margin-bottom:6px}
+  .part-list{max-height:180px;overflow:auto;display:grid;grid-template-columns:1fr;gap:2px;border:1px solid #e3ece3;border-radius:6px;padding:6px;background:#fff}
+  .part-item{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;padding:3px 4px;cursor:pointer}
+  .part-item:hover{background:#f1f8f1}
+  .part-item input{margin-top:2px}
+  .part-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .part-sup{font-weight:700;font-size:12.5px;color:var(--green)}
   table.inp{width:100%;border-collapse:collapse;font-size:14px}
   table.inp th,table.inp td{border:1px solid var(--line);padding:6px 8px;text-align:left}
   table.inp th{background:var(--green-pale);font-size:12.5px}
@@ -326,6 +334,10 @@ const CAR40 = [
 ];
 
 let vociState = [];
+// Particelle catastali importate dal fascicolo (riempite da importaFascicolo).
+let particelleFascicolo = [];
+// Categorie di investimento che insistono su terreno/particelle catastali.
+const CAT_TERRENO = new Set(["ARB","ED","IRR","INV","REN","SIL"]);
 
 function nuovaVoce(){
   return { desc:"", cat:"M", importo:0,
@@ -334,7 +346,8 @@ function nuovaVoce(){
     specie:"", superficie:"", sesto:"", passaporto:false, giaFinanziata:false, rinfittimento:false,
     zonaAgricola:true, destProduttiva:true,
     efficienza:"", reflue:false, autorizzazione:false, contatori:false,
-    capacita:"", autoconsumo:true };
+    capacita:"", autoconsumo:true,
+    particelle:[], pozzo:false };
 }
 function addVoce(){ vociState.push(nuovaVoce()); renderVoci(); }
 function delVoce(i){ vociState.splice(i,1); renderVoci(); }
@@ -342,6 +355,33 @@ function updVoce(i, campo, v){ vociState[i][campo] = v; aggiornaTotaleVoci(); }
 function updVoceChk(i, campo, v){ vociState[i][campo] = v; }
 function updCar(i, j, v){ vociState[i].car40[j] = v; }
 function cambiaCat(i, v){ vociState[i].cat = v; renderVoci(); }
+// Somma superficie (ha) delle particelle selezionate per una voce
+function supParticelleVoce(v){
+  return (v.particelle||[]).reduce((a,key)=>{ const p=particelleFascicolo.find(x=>chiaveParticella(x)===key); return a+((p&&p.supHa)||0); },0);
+}
+function chiaveParticella(p){ return p.comune+"|"+p.foglio+"|"+p.particella; }
+function toggleParticella(i, key, checked){
+  const set = new Set(vociState[i].particelle||[]);
+  if (checked) set.add(key); else set.delete(key);
+  vociState[i].particelle = [...set];
+  // aggiorna la superficie selezionata e, per arboreo, il campo superficie
+  const sup = supParticelleVoce(vociState[i]);
+  const span = document.getElementById("supSel-"+i);
+  if (span) span.textContent = sup>0 ? "Superficie selezionata: "+sup.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha ("+vociState[i].particelle.length+" particelle)" : "Nessuna particella selezionata";
+  if (vociState[i].cat==="ARB" && sup>0){ vociState[i].superficie = sup.toFixed(4); const inp=document.getElementById("supArb-"+i); if(inp) inp.value = vociState[i].superficie; }
+}
+function aggiungiParticellaManuale(i){
+  const c = (prompt("Comune (es. MANDURIA):")||"").trim().toUpperCase();
+  if (!c) return;
+  const f = (prompt("Foglio:")||"").trim();
+  const p = (prompt("Particella:")||"").trim();
+  const s = parseFloat((prompt("Superficie in ettari (es. 0.98):")||"").replace(",", "."));
+  if (!f || !p) return;
+  const rec = { comune:c, foglio:f, particella:p, forma:"Da verificare", supHa: Number.isFinite(s)?s:null, manuale:true };
+  if (!particelleFascicolo.some(x=>chiaveParticella(x)===chiaveParticella(rec))) particelleFascicolo.push(rec);
+  const set = new Set(vociState[i].particelle||[]); set.add(chiaveParticella(rec)); vociState[i].particelle=[...set];
+  renderVoci();
+}
 
 function specHTML(v, i){
   switch(v.cat){
@@ -362,7 +402,7 @@ function specHTML(v, i){
     }
     case "ARB": return `<div class="grid">
         <label class="f">Specie<input type="text" value="${esc(v.specie)}" oninput="updVoce(${i},'specie',this.value)"></label>
-        <label class="f">Superficie (ha)<input type="number" min="0" step="0.01" value="${esc(v.superficie)}" oninput="updVoce(${i},'superficie',this.value)"></label>
+        <label class="f">Superficie (ha)<input type="number" id="supArb-${i}" min="0" step="0.01" value="${esc(v.superficie)}" oninput="updVoce(${i},'superficie',this.value)"><small>si compila in automatico dalle particelle selezionate</small></label>
         <label class="f">Sesto di impianto<input type="text" value="${esc(v.sesto)}" placeholder="es. 6 × 3 m" oninput="updVoce(${i},'sesto',this.value)"></label>
       </div>
       <div class="chk"><input type="checkbox" ${v.passaporto?"checked":""} onchange="updVoceChk(${i},'passaporto',this.checked)"><span>Materiale vivaistico con <b>passaporto fitosanitario</b></span></div>
@@ -389,6 +429,30 @@ function specHTML(v, i){
   }
 }
 
+// Selettore delle particelle catastali (con superficie) per le voci su terreno.
+function particelleHTML(v, i){
+  if (!CAT_TERRENO.has(v.cat)) return "";
+  const sel = new Set(v.particelle||[]);
+  const sup = supParticelleVoce(v);
+  let h = `<div class="part-box"><div class="part-title">Particelle catastali interessate dall'investimento</div>`;
+  if (!particelleFascicolo.length){
+    h += `<p class="hint">Nessuna particella importata dal fascicolo. Carica il fascicolo aziendale AGEA per selezionarle, oppure aggiungile a mano.</p>`;
+  } else {
+    h += `<div class="part-list">` + particelleFascicolo.map(p=>{
+      const key = chiaveParticella(p);
+      const supTxt = p.supHa!=null ? p.supHa.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha" : "sup. n.d.";
+      return `<label class="part-item"><input type="checkbox" ${sel.has(key)?"checked":""} onchange="toggleParticella(${i},'${key.replace(/'/g,"\\'")}',this.checked)">
+        <span><b>${esc(p.comune)}</b> Fg. ${esc(p.foglio)} P.lla ${esc(p.particella)} · ${supTxt} · ${esc(p.forma)}${p.manuale?" (man.)":""}</span></label>`;
+    }).join("") + `</div>`;
+  }
+  h += `<div class="part-foot"><span id="supSel-${i}" class="part-sup">${sup>0?"Superficie selezionata: "+sup.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha ("+(v.particelle||[]).length+" particelle)":"Nessuna particella selezionata"}</span>
+    <button type="button" class="ghost small" onclick="aggiungiParticellaManuale(${i})">＋ Particella a mano</button></div>`;
+  if (v.cat==="IRR"){
+    h += `<div class="chk" style="margin-top:8px"><input type="checkbox" ${v.pozzo?"checked":""} onchange="updVoceChk(${i},'pozzo',this.checked)"><span>Presenza di <b>pozzo</b> sulle particelle selezionate (indicare in progetto; verificare concessione/autorizzazione all'emungimento — DOC04)</span></div>`;
+  }
+  h += `</div>`;
+  return h;
+}
 function renderVoci(){
   const box = document.getElementById("vociBox");
   box.innerHTML = vociState.map((v,i)=>`
@@ -407,7 +471,7 @@ function renderVoci(){
       </label>
       <button type="button" class="danger" onclick="delVoce(${i})">✕ Rimuovi</button>
     </div>
-    <div class="vspec">${specHTML(v,i)}</div>
+    <div class="vspec">${specHTML(v,i)}${particelleHTML(v,i)}</div>
   </div>`).join("");
   aggiornaTotaleVoci();
 }
@@ -453,6 +517,8 @@ function analizzaVoce(v){
       if (eff >= soglia){ r.prio=true; r.note.push("Efficienza "+eff+"% ≥ "+soglia+"%"+(v.reflue?" (acque reflue)":"")+" → prioritaria"); }
       else r.note.push("Efficienza "+eff+"% < "+soglia+"%"+(v.reflue?" (acque reflue)":"")+" → non prioritaria");
       r.docs.push("DOC04","DOC12");
+      if (v.pozzo) { r.note.push("Pozzo presente sulle particelle selezionate"+(v.autorizzazione?" (autorizzazione dichiarata)":" → verificare concessione/autorizzazione all'emungimento, DOC04")); }
+      else if (!v.reflue) { r.note.push("⚠ Indicare la fonte idrica (pozzo, prelievo consortile o acque reflue)"); }
       if (!v.autorizzazione) r.note.push("⚠ Acquisire autorizzazione all'emungimento / prelievo consortile / uso reflue (DOC04)");
       if (!v.contatori) r.note.push("⚠ Obbligo di installazione di misuratori di consumo idrico");
       break;
@@ -495,7 +561,15 @@ function calcola(vociParam){
   };
 
   // ================= FASE 4 — ANALISI TECNICA VOCI =================
-  const analisi = voci.map(v => ({ voce:v, ...analizzaVoce(v) }));
+  const analisi = voci.map(v => {
+    const a = { voce:v, ...analizzaVoce(v) };
+    if (CAT_TERRENO.has(v.cat) && (v.particelle||[]).length){
+      const ps = v.particelle.map(key => particelleFascicolo.find(x=>chiaveParticella(x)===key)).filter(Boolean);
+      const sup = ps.reduce((s,p)=>s+(p.supHa||0),0);
+      a.particelleTxt = ps.map(p=>p.comune+" Fg."+p.foglio+" P.lla "+p.particella).join("; ") + " — sup. "+sup.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha" + (v.cat==="IRR"&&v.pozzo?" — pozzo presente":"");
+    }
+    return a;
+  });
   const ammesse = analisi.filter(a=>a.amm);
   const escluse = analisi.filter(a=>!a.amm);
   const spesaAmmessa = ammesse.reduce((s,a)=>s+(a.voce.importo||0),0);
@@ -690,7 +764,7 @@ function calcola(vociParam){
   if (inp.p8fin>0) docProfilo.push("Dichiarazione istituto di credito (mutuo) o attestazione giacenza media");
   if (inp.p6>0) docProfilo.push("Domanda di partecipazione interventi SRA");
 
-  ultimoEsito = { input:inp, voci, analisiVoci:analisi.map(a=>({desc:a.voce.desc, cat:a.voce.cat, importo:a.voce.importo, ammissibile:a.amm, prioritaria:a.prio, note:a.note, docs:a.docs})),
+  ultimoEsito = { input:inp, voci, particelleFascicolo, analisiVoci:analisi.map(a=>({desc:a.voce.desc, cat:a.voce.cat, importo:a.voce.importo, ammissibile:a.amm, prioritaria:a.prio, note:a.note, docs:a.docs, particelle:a.voce.particelle, pozzo:a.voce.pozzo})),
     spesaAmmessa:costoTot, spesaPrioritaria, spesaEsclusa, giovane, donna,
     killerCriteria:kc, esito, aliquota, contributo, punteggi:pts, totale, datiMancanti:datiMancantiPts,
     documenti:docList, documentiProfilo:docProfilo, obbligoSIAN:richiedeSIAN };
@@ -738,7 +812,7 @@ function calcola(vociParam){
       const lbl = !a.amm ? "✘ NON AMMISS." : a.prio ? "★ PRIORITARIA" : "✔ AMMISSIBILE";
       return `<tr><td>${esc(a.voce.desc)||"—"}${a.voce.cat==="M"||a.voce.cat==="M40" ? (a.voce.marca||a.voce.modello?`<br><small>${esc(a.voce.marca)} ${esc(a.voce.modello)}</small>`:"") : ""}${a.voce.cat==="ARB"&&a.voce.specie?`<br><small>${esc(a.voce.specie)}${a.voce.superficie?", "+esc(a.voce.superficie)+" ha":""}${a.voce.sesto?", sesto "+esc(a.voce.sesto):""}</small>`:""}</td>
       <td>${CATEGORIE[a.voce.cat]}</td><td class="num">${EUR(a.voce.importo||0)}</td>
-      <td class="${cls}">${lbl}</td><td>${a.note.map(esc).join("<br>")}${a.docs.length?`<br><small>Documenti: <b>${a.docs.join(", ")}</b></small>`:""}</td></tr>`;
+      <td class="${cls}">${lbl}</td><td>${a.note.map(esc).join("<br>")}${a.docs.length?`<br><small>Documenti: <b>${a.docs.join(", ")}</b></small>`:""}${a.particelleTxt?`<br><small>Particelle: ${esc(a.particelleTxt)}</small>`:""}</td></tr>`;
     }).join("")}
     <tr class="tot"><td colspan="2">Spesa ammissibile ${spesaEsclusa>0?`(escluse voci non ammissibili: ${EUR(spesaEsclusa)})`:""}</td>
       <td class="num">${EUR(spesaAmmessa)}</td><td colspan="2">di cui prioritaria ai fini P1: ${EUR(spesaPrioritaria)} (${spesaAmmessa>0?PCT(spesaPrioritaria/spesaAmmessa*100):"—"})</td></tr>
@@ -875,10 +949,44 @@ function numPdf(s){
 function quotaPercentuale(parti, totale){
   return totale > 0 ? Math.round((parti / totale * 100) * 10) / 10 : 0;
 }
+// Superficie catastale in formato "Ha,Aa,Ca" (es. 00,98,61) -> ettari (0.9861)
+function haAaCaToHa(s){
+  const m = String(s||"").match(/(\d{1,3}),(\d{2}),(\d{2})/);
+  return m ? (+m[1] + (+m[2])/100 + (+m[3])/10000) : null;
+}
+// Estrae l'elenco delle particelle catastali dal fascicolo (layout a colonne appiattito).
+// Ogni record: COMUNE, FOG, PART, "N )", FORMA(PROPRIETA'/AFFITTO/COMODATO), proprietario,
+// SI/NO, data, sup.catastale, sup.grafica, sup.condotta, protocollo. SEZ/SUB spesso assenti.
+// Estrazione orientativa: da verificare sempre sulla visura catastale.
+function estraiParticelleCatastali(testo){
+  const i = testo.search(/Elenco delle particelle/i);
+  if (i < 0) return [];
+  const tok = testo.slice(i).split("\n").map(s=>s.trim()).filter(Boolean);
+  const isSurf = x => /^\d{1,3},\d{2},\d{2}$/.test(x);
+  const isMarker = x => /^\d+\s*\)$/.test(x);
+  const out = [];
+  const visti = new Set();
+  for (let k=2; k<tok.length; k++){
+    if (!isMarker(tok[k])) continue;
+    const part = tok[k-1], fog = tok[k-2], comune = tok[k-3];
+    if (!/^\d{1,5}$/.test(part||"") || !/^\d{1,3}$/.test(fog||"") || !/^[A-ZÀ-Ý'’ .]{2,}$/.test(comune||"")) continue;
+    const forma = tok[k+1] || "";
+    if (!/PROPRIETA|AFFITTO|COMODATO/i.test(forma)) continue;
+    const surfs = [];
+    for (let j=k+1; j<Math.min(k+12,tok.length) && surfs.length<3; j++){ if (isSurf(tok[j])) surfs.push(tok[j]); }
+    const supHa = surfs.length ? haAaCaToHa(surfs[surfs.length-1]) : null;
+    const formaN = /AFFITTO/i.test(forma) ? "Affitto" : /COMODATO/i.test(forma) ? "Comodato" : "Proprietà";
+    const key = comune+"|"+fog+"|"+part;
+    if (visti.has(key)) continue;
+    visti.add(key);
+    out.push({ comune, foglio:String(+fog), particella:(part.replace(/^0+/,"")||part), forma:formaN, supHa });
+  }
+  return out;
+}
 function estraiFascicoloAgea(testoRaw){
   const testo = normalizzaTestoPdf(testoRaw);
   const lines = testo.split("\n").map(l=>l.trim()).filter(Boolean);
-  const out = { campi:{}, checks:{}, p3:{}, note:[] };
+  const out = { campi:{}, checks:{}, p3:{}, note:[], particelle:[] };
 
   const cuaa = testo.match(/CUAA\s*:\s*\n?([A-Z0-9]{11,16})/i) || testo.match(/CUAA:\s*([A-Z0-9]{11,16})/i);
   if (cuaa) out.campi.cuaa = cuaa[1].toUpperCase();
@@ -968,11 +1076,13 @@ function estraiFascicoloAgea(testoRaw){
     out.note.push("Vincoli P3 non riconosciuti automaticamente: compilare la localizzazione a mano.");
   }
 
-  const righeConduzione = lines.filter(l => /\b(PROPRIETA'|AFFITTO|COMODATO)\b/.test(l));
-  if (righeConduzione.length) {
-    const aff = righeConduzione.filter(l=>/\bAFFITTO\b/.test(l)).length;
-    const com = righeConduzione.filter(l=>/\bCOMODATO\b/.test(l)).length;
-    out.note.push(`Titoli di conduzione rilevati: ${aff} righe in affitto, ${com} in comodato. Verificare DOC02 e scadenze.`);
+  // Elenco particelle catastali (per la selezione nelle voci di spesa)
+  out.particelle = estraiParticelleCatastali(testo);
+  if (out.particelle.length) {
+    const aff = out.particelle.filter(p=>p.forma==="Affitto").length;
+    const com = out.particelle.filter(p=>p.forma==="Comodato").length;
+    const supTot = out.particelle.reduce((a,p)=>a+(p.supHa||0),0);
+    out.note.push(`Particelle catastali rilevate: ${out.particelle.length} (sup. condotta ~${supTot.toFixed(2)} ha; di cui ${aff} in affitto, ${com} in comodato). Selezionabili nelle voci di spesa; verificare sempre sulla visura. ${(aff+com)>0?"Per le particelle non in proprietà serve DOC02.":""}`);
   }
 
   return out;
@@ -1154,6 +1264,9 @@ async function importaFascicolo(file){
   // 4) Riconoscimento campi
   const dati = estraiFascicoloAgea(testo);
   const compilati = applicaDatiFascicolo(dati);
+  // particelle catastali disponibili per la selezione nelle voci di spesa
+  particelleFascicolo = dati.particelle || [];
+  renderVoci();
   if (!compilati) {
     const note = dati.note.length ? "\n\nNote:\n- "+dati.note.join("\n- ") : "";
     setImportStatus(

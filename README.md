@@ -14,6 +14,7 @@ Tutto il calcolo avviene nel browser: nessun dato viene inviato a server esterni
 
 - **Fase 1 — Requisiti minimi (killer criteria):** CR01 soggettività, CR02 dimensione economica (PS ≥ 15.000 €, deroga olivicola ≥ 5.000 €), CR27 soglia minima di spesa (30.000 €), CR28 massimale cumulativo (3.000.000 € nel periodo 2023-2027), CR31 titolo di disponibilità degli immobili.
 - **Import fascicolo AGEA:** precompilazione orientativa di anagrafica, CUAA, data di nascita, sede, OTE/PS, PS olivicola, presenza di affitto/comodato e quote P3 ricavabili dai vincoli del fascicolo.
+- **Selezione particelle catastali:** dall'elenco del fascicolo si selezionano, per ogni voce di spesa su terreno (impianti arborei, irrigui, opere edili, invasi, ecc.), le particelle interessate con la relativa superficie; per gli impianti irrigui è possibile indicare la presenza del pozzo. Le particelle sono orientative e vanno verificate sulla visura.
 - **Fase 2 — Aliquota di sostegno:** 80% giovane agricoltore, 65% zone svantaggiate (≥ 51% SAT), 60% base.
 - **Fase 3 — Punteggio di selezione** (soglia minima 30 pt): principi P1–P8 con dettaglio analitico del calcolo.
 - **Fase 4 — Analisi tecnica dell'investimento:** per ogni voce di spesa (macchinari standard e 4.0, impianti arborei, opere edili, impianti irrigui, invasi, rinnovabili, filiera corta, silos/celle frigo) l'app applica le regole di validazione e determina se la voce è prioritaria ai fini del P1:
