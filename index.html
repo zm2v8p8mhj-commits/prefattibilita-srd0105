@@ -576,8 +576,10 @@ function calcola(vociParam){
   const spesaPrioritaria = ammesse.filter(a=>a.prio).reduce((s,a)=>s+(a.voce.importo||0),0);
   const spesaEsclusa = escluse.reduce((s,a)=>s+(a.voce.importo||0),0);
 
-  // costo totale: da voci se presenti, altrimenti campo manuale
-  const daVoci = voci.length>0 && spesaAmmessa>0;
+  // costo totale: dalle voci se presenti con importi, altrimenti campo manuale.
+  // Nota: se tutte le voci con importo risultano escluse, la spesa ammissibile è 0
+  // (CR27 KO), non un dato mancante.
+  const daVoci = voci.some(v => (v.importo||0) > 0);
   const costoTot = daVoci ? spesaAmmessa : inp.costoTotManuale;
   if (daVoci) document.getElementById("costoTot").value = spesaAmmessa.toFixed(2);
 
