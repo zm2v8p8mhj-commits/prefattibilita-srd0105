@@ -239,6 +239,10 @@
     <tr><td>Zone svantaggiate</td><td>1</td><td><input type="number" id="p3_svv" min="0" max="100" value="0"></td></tr>
     <tr><td>Aree con vincolo paesaggistico</td><td>1</td><td><input type="number" id="p3_paes" min="0" max="100" value="0"></td></tr>
   </table>
+  <div style="margin-top:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <button type="button" class="ghost small" onclick="calcolaP3DaParticelle()">⚖ Ricalcola P3 dalle particelle selezionate</button>
+    <span class="hint" id="p3AutoStato" style="margin:0">ZVN, Area D, svantaggiate e Natura 2000 sono ricavabili dal fascicolo; Xylella, salinità, aree protette e paesaggistico vanno indicate a mano.</span>
+  </div>
   <div class="grid" style="margin-top:10px">
     <label class="f">% SAT in zone con svantaggi naturali (escluse montane)
       <input type="number" id="satSvantaggiata" min="0" max="100" value="0" oninput="aggiornaAliquotaPreview()">
@@ -370,6 +374,39 @@ function toggleParticella(i, key, checked){
   if (span) span.textContent = sup>0 ? "Superficie selezionata: "+sup.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha ("+vociState[i].particelle.length+" particelle)" : "Nessuna particella selezionata";
   if (vociState[i].cat==="ARB" && sup>0){ vociState[i].superficie = sup.toFixed(4); const inp=document.getElementById("supArb-"+i); if(inp) inp.value = vociState[i].superficie; }
 }
+// P3 ponderato sul VALORE dell'investimento: per ogni voce con particelle selezionate,
+// l'importo è ripartito sulle superfici delle particelle; la quota di ciascuna zona è
+// (Σ importi localizzati nella zona) / (Σ importi di tutte le voci). Le voci senza
+// particelle (es. macchinari) restano nel denominatore ma non nel numeratore: scelta
+// prudenziale, il punteggio non viene mai sovrastimato.
+function calcolaP3DaParticelle(){
+  const stato = document.getElementById("p3AutoStato");
+  const vociUse = vociState.filter(v => (v.importo||0) > 0);
+  const totImp = vociUse.reduce((a,v)=>a+v.importo,0);
+  if (!totImp){ if (stato) stato.textContent = "Inserisci prima le voci di spesa con gli importi (sezione 3)."; return; }
+  const conVincoli = particelleFascicolo.some(p=>p.zvn!=null || p.areaPsr!=null);
+  if (!conVincoli){ if (stato) stato.textContent = "Nessun vincolo per particella disponibile: carica il fascicolo aziendale AGEA."; return; }
+  const num = { zvn:0, ard:0, svv:0, n2k:0 };
+  let impLocalizzato = 0;
+  for (const v of vociUse){
+    const ps = (v.particelle||[]).map(k=>particelleFascicolo.find(x=>chiaveParticella(x)===k)).filter(p=>p && p.supHa);
+    const supTot = ps.reduce((a,p)=>a+p.supHa,0);
+    if (!ps.length || !supTot) continue;
+    impLocalizzato += v.importo;
+    const fr = f => ps.filter(f).reduce((a,p)=>a+p.supHa,0) / supTot;
+    num.zvn += v.importo * fr(p=>p.zvn===true);
+    num.ard += v.importo * fr(p=>p.areaPsr==="D");
+    num.svv += v.importo * fr(p=>p.svantaggiata===true);
+    num.n2k += v.importo * fr(p=>p.natura2000===true);
+  }
+  if (!impLocalizzato){ if (stato) stato.textContent = "Nessuna voce ha particelle selezionate: seleziona le particelle nelle voci su terreno (sezione 3)."; return; }
+  const q = x => Math.round(x / totImp * 1000) / 10;
+  document.getElementById("p3_zvn").value = q(num.zvn);
+  document.getElementById("p3_ard").value = q(num.ard);
+  document.getElementById("p3_svv").value = q(num.svv);
+  document.getElementById("p3_n2k").value = q(num.n2k);
+  if (stato) stato.textContent = "Quote ZVN/Area D/svantaggiate/Natura 2000 ricalcolate sul valore dell'investimento ("+EUR(impLocalizzato)+" localizzato su "+EUR(totImp)+" totali; le voci senza particelle pesano solo al denominatore, in via prudenziale). Ricontrolla e integra a mano le altre zone.";
+}
 function aggiungiParticellaManuale(i){
   const c = (prompt("Comune (es. MANDURIA):")||"").trim().toUpperCase();
   if (!c) return;
@@ -441,8 +478,9 @@ function particelleHTML(v, i){
     h += `<div class="part-list">` + particelleFascicolo.map(p=>{
       const key = chiaveParticella(p);
       const supTxt = p.supHa!=null ? p.supHa.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha" : "sup. n.d.";
+      const badges = [p.zvn===true?"ZVN":null, p.areaPsr?("Area "+p.areaPsr):null, p.svantaggiata===true?"Svant.":null, p.montana===true?"Mont.":null, p.natura2000===true?"N2000":null].filter(Boolean);
       return `<label class="part-item"><input type="checkbox" ${sel.has(key)?"checked":""} onchange="toggleParticella(${i},'${key.replace(/'/g,"\\'")}',this.checked)">
-        <span><b>${esc(p.comune)}</b> Fg. ${esc(p.foglio)} P.lla ${esc(p.particella)} · ${supTxt} · ${esc(p.forma)}${p.manuale?" (man.)":""}</span></label>`;
+        <span><b>${esc(p.comune)}</b> Fg. ${esc(p.foglio)} P.lla ${esc(p.particella)} · ${supTxt} · ${esc(p.forma)}${p.manuale?" (man.)":""}${badges.length?` <small style="color:var(--blue)">[${badges.join(" · ")}]</small>`:""}</span></label>`;
     }).join("") + `</div>`;
   }
   h += `<div class="part-foot"><span id="supSel-${i}" class="part-sup">${sup>0?"Superficie selezionata: "+sup.toLocaleString("it-IT",{maximumFractionDigits:4})+" ha ("+(v.particelle||[]).length+" particelle)":"Nessuna particella selezionata"}</span>
@@ -985,6 +1023,34 @@ function estraiParticelleCatastali(testo){
   }
   return out;
 }
+// Estrae i vincoli amministrativi/agronomici per particella dalla sezione
+// "VINCOLI AMMINISTRATIVI E AGRONOMICI": per ogni record COMUNE/FOG/PART seguito
+// da "ZVN: SI|NO", area PSR (A-D) e colonna Zone Svantaggiate/Montane; eventuali
+// codici SIC/ZPS (Rete Natura 2000) compaiono tra la particella e la voce ZVN.
+// Restituisce una mappa chiave particella -> vincoli. Dato orientativo.
+function estraiVincoliParticelle(testo){
+  const tok = testo.split("\n").map(s=>s.trim()).filter(Boolean);
+  const out = {};
+  for (let k=0; k<tok.length; k++){
+    if (!/^ZVN:\s*(SI|NO)$/i.test(tok[k])) continue;
+    // cerca all'indietro la terna COMUNE / FOG / PART (eventuali Sub o codici SIC/ZPS in mezzo)
+    let part=null, fog=null, comune=null, jPart=-1;
+    for (let j=k-1; j>=Math.max(0,k-7); j--){
+      if (/^\d{1,5}$/.test(tok[j]) && /^\d{1,3}$/.test(tok[j-1]||"") && /^[A-ZÀ-Ý'’ .]{2,}$/.test(tok[j-2]||"")){
+        part=tok[j]; fog=tok[j-1]; comune=tok[j-2]; jPart=j; break;
+      }
+    }
+    if (!part) continue;
+    const natura2000 = tok.slice(jPart+1, k).some(x=>/\bSIC\b|\bZPS\b|IT9\d{6}/i.test(x));
+    const zvn = /SI$/i.test(tok[k]);
+    const area = /^[A-D]$/.test(tok[k+1]||"") ? tok[k+1] : null;
+    const svTxt = (area ? tok[k+2] : tok[k+1]) || "";
+    const svantaggiata = !!svTxt && !/ASSENZA|^NO$|N\.D\./i.test(svTxt) && /[A-ZÀ-Ý]/.test(svTxt) && !/^Data|^MANDURIA$|^\d/.test(svTxt) && svTxt !== svTxt.toLowerCase();
+    const key = comune+"|"+String(+fog)+"|"+(part.replace(/^0+/,"")||part);
+    out[key] = { zvn, areaPsr: area, svantaggiata: svantaggiata && !/MONTAN/i.test(svTxt), montana: /MONTAN/i.test(svTxt), natura2000 };
+  }
+  return out;
+}
 function estraiFascicoloAgea(testoRaw){
   const testo = normalizzaTestoPdf(testoRaw);
   const lines = testo.split("\n").map(l=>l.trim()).filter(Boolean);
@@ -1067,19 +1133,32 @@ function estraiFascicoloAgea(testoRaw){
   out.checks.affitto = hasAffitto;
   out.checks.comodato = hasComodato;
 
-  const vincoli = [...testo.matchAll(/ZVN:\s*(SI|NO)\s+([A-D])\s+([A-ZÀ-Ý ]+)/gi)]
-    .map(m => ({zvn:m[1].toUpperCase(), area:m[2].toUpperCase(), svv:m[3].trim().toUpperCase()}));
-  if (vincoli.length) {
-    out.p3.zvn = quotaPercentuale(vincoli.filter(v=>v.zvn==="SI").length, vincoli.length);
-    out.p3.ard = quotaPercentuale(vincoli.filter(v=>v.area==="D").length, vincoli.length);
-    out.p3.svv = quotaPercentuale(vincoli.filter(v=>!/ASSENZA|NO|N\.D\./.test(v.svv)).length, vincoli.length);
-    out.note.push("P3 precompilato in modo indicativo su "+vincoli.length+" particelle/vincoli del fascicolo: verifica le quote sul valore dell'investimento.");
-  } else {
+  // Elenco particelle catastali (per la selezione nelle voci di spesa),
+  // con i vincoli per particella (ZVN, area PSR, svantaggi, Natura 2000) agganciati.
+  out.particelle = estraiParticelleCatastali(testo);
+  const vincoliMap = estraiVincoliParticelle(testo);
+  out.particelle.forEach(p => {
+    const v = vincoliMap[p.comune+"|"+p.foglio+"|"+p.particella];
+    if (v) Object.assign(p, v);
+  });
+  const nVinc = Object.keys(vincoliMap).length;
+
+  // P3 all'import: quote ponderate sulla SUPERFICIE aziendale condotta (prima stima).
+  // Dopo aver selezionato le particelle nelle voci di spesa, il pulsante nella sezione 5
+  // ricalcola le quote ponderate sul VALORE dell'investimento, come richiede l'Avviso.
+  const supPesabile = out.particelle.filter(p=>p.supHa!=null && (p.zvn!=null || p.areaPsr!=null));
+  const supTotV = supPesabile.reduce((a,p)=>a+p.supHa,0);
+  if (supTotV > 0) {
+    const quotaSup = f => Math.round(supPesabile.filter(f).reduce((a,p)=>a+p.supHa,0) / supTotV * 1000)/10;
+    out.p3.zvn = quotaSup(p=>p.zvn===true);
+    out.p3.ard = quotaSup(p=>p.areaPsr==="D");
+    out.p3.svv = quotaSup(p=>p.svantaggiata===true);
+    out.p3.n2k = quotaSup(p=>p.natura2000===true);
+    out.campi.satSvantaggiata = String(out.p3.svv);
+    out.note.push("Quote P3 (ZVN, Area D, svantaggiate, Natura 2000) precompilate come stima ponderata sulla superficie condotta ("+nVinc+" particelle con vincoli). Dopo aver selezionato le particelle nelle voci di spesa, usa \"Ricalcola P3 dalle particelle\" per la ponderazione sul valore dell'investimento. Xylella, salinità, aree protette e vincolo paesaggistico non risultano dal fascicolo: compilarle a mano.");
+  } else if (nVinc === 0) {
     out.note.push("Vincoli P3 non riconosciuti automaticamente: compilare la localizzazione a mano.");
   }
-
-  // Elenco particelle catastali (per la selezione nelle voci di spesa)
-  out.particelle = estraiParticelleCatastali(testo);
   if (out.particelle.length) {
     const aff = out.particelle.filter(p=>p.forma==="Affitto").length;
     const com = out.particelle.filter(p=>p.forma==="Comodato").length;
@@ -1269,6 +1348,7 @@ async function importaFascicolo(file){
   // particelle catastali disponibili per la selezione nelle voci di spesa
   particelleFascicolo = dati.particelle || [];
   renderVoci();
+  aggiornaAliquotaPreview();
   if (!compilati) {
     const note = dati.note.length ? "\n\nNote:\n- "+dati.note.join("\n- ") : "";
     setImportStatus(
